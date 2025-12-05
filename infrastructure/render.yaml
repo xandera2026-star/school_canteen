@@ -3,8 +3,8 @@ services:
     name: xandera-backend
     env: node
     plan: starter
-    buildCommand: npm ci && npm run build
-    startCommand: npm run start:prod
+    buildCommand: cd backend && npm ci && npm run build
+    startCommand: cd backend && npm run start:prod
     autoDeploy: true
     envVars:
       - key: NODE_VERSION
@@ -21,8 +21,8 @@ services:
         sync: false
   - type: static_site
     name: xandera-admin
-    buildCommand: npm ci && npm run build
-    publishPath: dist
+    buildCommand: cd admin && npm ci && npm run build
+    publishPath: admin/dist
     envVars:
       - key: VITE_API_BASE_URL
         value: https://api.xandera-canteen.com/v1
