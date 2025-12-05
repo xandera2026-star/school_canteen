@@ -1,0 +1,5 @@
+student_name,roll_number,class,section,parent_name,parent_mobile,parent_email,allergy_info,is_active
+Aarav Krishnan,SVSS-101,IX,A,Meera Krishnan,919876543210,meera.krishnan@example.com,"nuts; lactose",true
+Diya Raman,SVSS-102,IX,A,Raman Subramani,919812345678,raman.subramani@example.com,gluten,true
+Kavin Raj,SVSS-201,X,B,Saranya Raj,919845612378,saranya.raj@example.com,none,true
+Mithra S,SVSS-305,VIII,C,Srinivasan Kumar,919834567890,srinivasan.kumar@example.com,"spicy; nuts",false

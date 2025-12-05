@@ -1,0 +1,810 @@
+openapi: 3.0.3
+info:
+  title: XAndera School Canteen Platform API
+  version: 0.1.0
+  description: |
+    MVP REST API for the multi-tenant XAndera School Canteen Platform.
+    All responses wrap payloads inside `data` envelopes unless noted.
+servers:
+  - url: https://api.xandera-canteen.com/v1
+    description: Production
+  - url: https://staging-api.xandera-canteen.com/v1
+    description: Staging
+security:
+  - bearerAuth: []
+tags:
+  - name: Auth
+  - name: Parent
+  - name: Admin
+  - name: Owner
+  - name: Platform
+  - name: System
+paths:
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Initiate OTP login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [mobile, country_code]
+              properties:
+                mobile:
+                  type: string
+                  example: "9876543210"
+                country_code:
+                  type: string
+                  example: "+91"
+      responses:
+        '202':
+          description: OTP sent
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmptyResponse'
+  /auth/verify-otp:
+    post:
+      tags: [Auth]
+      summary: Verify OTP and issue tokens
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [mobile, otp]
+              properties:
+                mobile:
+                  type: string
+                otp:
+                  type: string
+                device_id:
+                  type: string
+                  description: Identifier for push notifications
+      responses:
+        '200':
+          description: Authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+  /auth/refresh:
+    post:
+      tags: [Auth]
+      summary: Refresh access token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refresh_token]
+              properties:
+                refresh_token:
+                  type: string
+      responses:
+        '200':
+          description: Refreshed tokens
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+
+  /parent/students:
+    get:
+      tags: [Parent]
+      summary: List children linked to the parent
+      responses:
+        '200':
+          description: Children fetched
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Student'
+  /parent/menu:
+    get:
+      tags: [Parent]
+      summary: Fetch menu for a school/date
+      parameters:
+        - in: query
+          name: school_id
+          schema:
+            type: string
+            format: uuid
+          required: true
+        - in: query
+          name: service_date
+          schema:
+            type: string
+            format: date
+          required: true
+      responses:
+        '200':
+          description: Menu returned
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/MenuCategory'
+  /parent/orders:
+    post:
+      tags: [Parent]
+      summary: Place or modify an order
+      parameters:
+        - in: header
+          name: Idempotency-Key
+          schema:
+            type: string
+          required: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderRequest'
+      responses:
+        '201':
+          description: Order accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderResponse'
+    get:
+      tags: [Parent]
+      summary: Get order history
+      parameters:
+        - in: query
+          name: month
+          schema:
+            type: string
+            example: "2025-01"
+      responses:
+        '200':
+          description: Historical orders
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Order'
+  /parent/payments:
+    post:
+      tags: [Parent]
+      summary: Mark payment attempt
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentRequest'
+      responses:
+        '200':
+          description: Payment recorded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payment'
+
+  /admin/students/import:
+    post:
+      tags: [Admin]
+      summary: Import students via CSV
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '202':
+          description: Import queued
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportResponse'
+  /admin/menu-categories:
+    get:
+      tags: [Admin]
+      summary: List menu categories
+      responses:
+        '200':
+          description: Categories
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/MenuCategory'
+    post:
+      tags: [Admin]
+      summary: Create category
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MenuCategoryInput'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MenuCategory'
+  /admin/menu-items:
+    get:
+      tags: [Admin]
+      summary: List menu items
+      responses:
+        '200':
+          description: Items
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/MenuItem'
+    post:
+      tags: [Admin]
+      summary: Create menu item
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MenuItemInput'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MenuItem'
+  /admin/theme:
+    put:
+      tags: [Admin]
+      summary: Update school theme
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ThemeSettings'
+      responses:
+        '200':
+          description: Theme saved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ThemeSettings'
+  /admin/cutoff:
+    put:
+      tags: [Admin]
+      summary: Set ordering cut-off time
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [cutoff_time]
+              properties:
+                cutoff_time:
+                  type: string
+                  example: "09:00"
+                timezone:
+                  type: string
+                  example: "Asia/Kolkata"
+      responses:
+        '200':
+          description: Cut-off saved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/CutoffSettings'
+  /admin/dashboard:
+    get:
+      tags: [Admin]
+      summary: Fetch order/payment dashboard
+      parameters:
+        - in: query
+          name: date
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Dashboard metrics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminDashboard'
+
+  /owner/schools:
+    get:
+      tags: [Owner]
+      summary: List schools managed by owner
+      responses:
+        '200':
+          description: Schools
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/School'
+    post:
+      tags: [Owner]
+      summary: Create school
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SchoolInput'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/School'
+  /owner/subscriptions:
+    post:
+      tags: [Owner]
+      summary: Activate or upgrade subscription
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [school_id, plan]
+              properties:
+                school_id:
+                  type: string
+                  format: uuid
+                plan:
+                  $ref: '#/components/schemas/SubscriptionPlan'
+      responses:
+        '200':
+          description: Subscription updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Subscription'
+
+  /platform/overview:
+    get:
+      tags: [Platform]
+      summary: Platform-wide analytics
+      responses:
+        '200':
+          description: Overview metrics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlatformOverview'
+
+  /idempotency:
+    get:
+      tags: [System]
+      summary: Retrieve idempotent request status
+      parameters:
+        - in: query
+          name: key
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Original response replay
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderResponse'
+  /upload-url:
+    post:
+      tags: [System]
+      summary: Generate signed upload URL (Firebase Storage proxy)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [mime_type, folder]
+              properties:
+                mime_type:
+                  type: string
+                folder:
+                  type: string
+                  example: "menus"
+      responses:
+        '200':
+          description: Signed URL info
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      upload_url:
+                        type: string
+                      file_url:
+                        type: string
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    EmptyResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          additionalProperties: false
+    AuthResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            access_token:
+              type: string
+            refresh_token:
+              type: string
+            expires_in:
+              type: integer
+              example: 3600
+            roles:
+              type: array
+              items:
+                type: string
+    Student:
+      type: object
+      properties:
+        student_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        class:
+          type: string
+        section:
+          type: string
+        roll_number:
+          type: string
+        allergies:
+          type: array
+          items:
+            $ref: '#/components/schemas/AllergyFlag'
+        is_active:
+          type: boolean
+    MenuCategory:
+      type: object
+      properties:
+        category_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        type:
+          type: string
+          enum: [veg, non_veg, snacks, south_indian, north_indian, special, drinks]
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/MenuItem'
+    MenuCategoryInput:
+      type: object
+      required: [name, type]
+      properties:
+        name:
+          type: string
+        type:
+          type: string
+          enum: [veg, non_veg, snacks, south_indian, north_indian, special, drinks]
+        description:
+          type: string
+    MenuItem:
+      type: object
+      properties:
+        item_id:
+          type: string
+          format: uuid
+        category_id:
+          type: string
+        name:
+          type: string
+        price:
+          type: number
+        currency:
+          type: string
+          example: INR
+        nutrition:
+          type: object
+          additionalProperties: true
+        allergens:
+          type: array
+          items:
+            $ref: '#/components/schemas/AllergyFlag'
+        availability:
+          $ref: '#/components/schemas/Availability'
+        image_url:
+          type: string
+    MenuItemInput:
+      allOf:
+        - $ref: '#/components/schemas/MenuItem'
+      required: [category_id, name, price]
+    Availability:
+      type: object
+      properties:
+        mode:
+          type: string
+          enum: [daily, date_range, weekdays]
+        days:
+          type: array
+          items:
+            type: string
+        start_date:
+          type: string
+          format: date
+        end_date:
+          type: string
+          format: date
+    OrderRequest:
+      type: object
+      required: [student_id, service_date, items]
+      properties:
+        order_id:
+          type: string
+          description: Provide to modify existing order
+        student_id:
+          type: string
+          format: uuid
+        service_date:
+          type: string
+          format: date
+        special_instructions:
+          type: string
+        items:
+          type: array
+          items:
+            type: object
+            required: [menu_item_id, quantity]
+            properties:
+              menu_item_id:
+                type: string
+              quantity:
+                type: integer
+              preferences:
+                type: array
+                items:
+                  type: string
+    OrderResponse:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/Order'
+    Order:
+      type: object
+      properties:
+        order_id:
+          type: string
+        school_id:
+          type: string
+        student_id:
+          type: string
+        status:
+          type: string
+          enum: [pending, confirmed, preparing, delivered, cancelled]
+        cut_off_locked:
+          type: boolean
+        payment_status:
+          type: string
+          enum: [pending, paid, refunded]
+        service_date:
+          type: string
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderItem'
+        total_amount:
+          type: number
+        currency:
+          type: string
+    OrderItem:
+      type: object
+      properties:
+        menu_item_id:
+          type: string
+        name:
+          type: string
+        quantity:
+          type: integer
+        unit_price:
+          type: number
+        preferences:
+          type: array
+          items:
+            type: string
+    PaymentRequest:
+      type: object
+      required: [order_id, method]
+      properties:
+        order_id:
+          type: string
+        method:
+          type: string
+          enum: [gpay_upi, cash]
+        transaction_ref:
+          type: string
+        status:
+          type: string
+          enum: [pending, paid, failed]
+    Payment:
+      type: object
+      properties:
+        payment_id:
+          type: string
+        order_id:
+          type: string
+        method:
+          type: string
+        status:
+          type: string
+        amount:
+          type: number
+        transaction_ref:
+          type: string
+    ImportResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            import_id:
+              type: string
+            status:
+              type: string
+              example: pending
+    ThemeSettings:
+      type: object
+      properties:
+        primary_color:
+          type: string
+        accent_color:
+          type: string
+        logo_url:
+          type: string
+    CutoffSettings:
+      type: object
+      properties:
+        cutoff_time:
+          type: string
+        timezone:
+          type: string
+    AdminDashboard:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            orders_today:
+              type: integer
+            gpay_total:
+              type: number
+            cash_total:
+              type: number
+            top_items:
+              type: array
+              items:
+                type: object
+                properties:
+                  name:
+                    type: string
+                  count:
+                    type: integer
+            missing_students:
+              type: array
+              items:
+                $ref: '#/components/schemas/Student'
+    School:
+      type: object
+      properties:
+        school_id:
+          type: string
+        name:
+          type: string
+        address:
+          type: string
+        status:
+          type: string
+          enum: [trial, active, inactive]
+        subscription:
+          $ref: '#/components/schemas/Subscription'
+    SchoolInput:
+      type: object
+      required: [name, address]
+      properties:
+        name:
+          type: string
+        address:
+          type: string
+        theme:
+          $ref: '#/components/schemas/ThemeSettings'
+    Subscription:
+      type: object
+      properties:
+        plan:
+          $ref: '#/components/schemas/SubscriptionPlan'
+        trial_ends_at:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [trial, active, expired]
+    SubscriptionPlan:
+      type: string
+      enum: [trial, standard, premium]
+    PlatformOverview:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            total_schools:
+              type: integer
+            total_orders:
+              type: integer
+            total_revenue:
+              type: number
+            expiring_trials:
+              type: array
+              items:
+                $ref: '#/components/schemas/School'
+            inactive_schools:
+              type: array
+              items:
+                $ref: '#/components/schemas/School'
+    AllergyFlag:
+      type: string
+      enum: [nuts, gluten, lactose, spicy]
