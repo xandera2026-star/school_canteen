@@ -18,6 +18,9 @@
 | GOOGLE_PAY_DEEP_LINK | Base URL template for UPI deep links |
 | AUDIT_TOPIC | Optional pub/sub topic for audit fanout |
 | RENDER_EXTERNAL_URL | Provided by Render for health checks |
+| SENTRY_DSN | Backend error monitoring (Sentry) |
+| BACKUP_BUCKET_URL | Object storage endpoint for DB dumps |
+| BACKUP_AUTH_HEADER | Auth header/token for uploading backups |
 
 ## Admin Web (React + Vite)
 | Variable | Description |
@@ -26,6 +29,7 @@
 | VITE_FIREBASE_CONFIG | JSON string used by Firebase JS SDK |
 | VITE_BUILD_ENV | `staging` / `production` |
 | VITE_ENABLE_IOS_SUPPORT | Toggles iOS-specific messaging |
+| VITE_SENTRY_DSN | Frontend error monitoring |
 
 ## Mobile (Flutter)
 | Variable | Description |

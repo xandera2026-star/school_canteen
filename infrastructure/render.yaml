@@ -35,4 +35,18 @@ services:
     databases:
       - name: xandera
 
-cronJobs: []
+cronJobs:
+  - name: xandera-db-backup
+    schedule: "0 1 * * *"
+    env: docker
+    plan: starter
+    command: bash backend/scripts/db_backup.sh
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: xandera-postgres
+          property: connectionString
+      - key: BACKUP_BUCKET_URL
+        sync: false
+      - key: BACKUP_AUTH_HEADER
+        sync: false
