@@ -1,253 +1,120 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
-void main() {
-  runApp(const XAnderaApp());
+import 'firebase_options.dart';
+import 'services/api_client.dart';
+import 'services/auth_repository.dart';
+import 'services/notification_service.dart';
+import 'services/offline_cache.dart';
+import 'services/parent_repository.dart';
+import 'state/auth_controller.dart';
+import 'state/dashboard_controller.dart';
+import 'ui/screens/login_screen.dart';
+import 'ui/screens/parent_home_screen.dart';
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await OfflineCache.init();
+  try {
+    await NotificationService.init();
+  } catch (error) {
+    debugPrint('Notification init failed: $error');
+    await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  }
+  final apiClient = ApiClient.instance;
+  final authRepository = AuthRepository(apiClient);
+  final parentRepository = ParentRepository(apiClient);
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => AuthController(authRepository)),
+        ChangeNotifierProvider(create: (_) => DashboardController(parentRepository)),
+      ],
+      child: const XAnderaApp(),
+    ),
+  );
 }
 
-class XAnderaApp extends StatelessWidget {
-  const XAnderaApp({super.key});
+class XAnderaApp extends StatefulWidget {
+  const XAnderaApp({super.key, this.bootstrapAuth = true});
+
+  final bool bootstrapAuth;
+
+  @override
+  State<XAnderaApp> createState() => _XAnderaAppState();
+}
+
+class _XAnderaAppState extends State<XAnderaApp> {
+  @override
+  void initState() {
+    super.initState();
+    if (widget.bootstrapAuth) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        context.read<AuthController>().bootstrap();
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'XAndera Canteen',
-      debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF2B6CB0),
-          brightness: Brightness.light,
-        ),
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
         useMaterial3: true,
       ),
-      home: const ParentHomeScreen(),
+      home: const _AppRouter(),
     );
   }
 }
 
-class ParentHomeScreen extends StatelessWidget {
-  const ParentHomeScreen({super.key});
+class _AppRouter extends StatelessWidget {
+  const _AppRouter();
 
   @override
   Widget build(BuildContext context) {
-    final children = [
-      StudentCardData('Aarav', 'Class IX - A', ['Nuts']),
-      StudentCardData('Diya', 'Class VI - B', ['Gluten']),
-    ];
-
-    final menuItems = [
-      MenuItemData('Veg Biriyani', 'Special of the Day', '₹80')..
-          withTag('Veg'),
-      MenuItemData('Lemon Rice', 'South Indian Favourites', '₹60'),
-      MenuItemData('Tender Coconut', 'Drinks & Juice', '₹45'),
-    ];
-
-    final announcements = [
-      AnnouncementData('Kitchen Update', 'Canteen closed on Friday.'),
-      AnnouncementData('New Item', 'Mini idli combo now available.'),
-    ];
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Saraswathi Vidyalaya'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_none_rounded),
-            onPressed: () {},
-          ),
-        ],
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          const Text(
-            'Your Children',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(height: 12),
-          SizedBox(
-            height: 170,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              itemBuilder: (context, index) =>
-                  StudentCard(data: children[index]),
-              separatorBuilder: (context, _) => const SizedBox(width: 12),
-              itemCount: children.length,
-            ),
-          ),
-          const SizedBox(height: 24),
-          const SectionHeader(title: 'Today\'s Menu'),
-          const SizedBox(height: 12),
-          ...menuItems.map(MenuItemTile.new),
-          const SizedBox(height: 24),
-          const SectionHeader(title: 'Announcements'),
-          const SizedBox(height: 12),
-          ...announcements.map(AnnouncementCard.new),
-          const SizedBox(height: 32),
-          FilledButton.icon(
-            onPressed: () {},
-            icon: const Icon(Icons.shopping_bag_outlined),
-            label: const Text('Review Cart & Pay'),
-          ),
-        ],
-      ),
-    );
+    final auth = context.watch<AuthController>();
+    if (!auth.isLoggedIn) {
+      return const LoginScreen();
+    }
+    final schoolId = auth.lastSchoolId;
+    if (schoolId == null) {
+      return const LoginScreen();
+    }
+    return _DashboardLoader(schoolId: schoolId);
   }
 }
 
-class StudentCardData {
-  StudentCardData(this.name, this.classDisplay, this.allergies);
+class _DashboardLoader extends StatefulWidget {
+  const _DashboardLoader({required this.schoolId});
 
-  final String name;
-  final String classDisplay;
-  final List<String> allergies;
+  final String schoolId;
+
+  @override
+  State<_DashboardLoader> createState() => _DashboardLoaderState();
 }
 
-class StudentCard extends StatelessWidget {
-  const StudentCard({required this.data, super.key});
+class _DashboardLoaderState extends State<_DashboardLoader> {
+  bool _initialized = false;
 
-  final StudentCardData data;
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_initialized) {
+      _initialized = true;
+      context.read<DashboardController>().loadAll(schoolId: widget.schoolId);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 200,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            offset: const Offset(0, 6),
-            blurRadius: 12,
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            data.name,
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            data.classDisplay,
-            style: TextStyle(color: Colors.blueGrey.shade600),
-          ),
-          const SizedBox(height: 16),
-          Wrap(
-            spacing: 6,
-            children: data.allergies
-                .map(
-                  (flag) => Chip(
-                    label: Text(flag),
-                    visualDensity: VisualDensity.compact,
-                  ),
-                )
-                .toList(),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class MenuItemData {
-  MenuItemData(this.name, this.description, this.price);
-
-  final String name;
-  final String description;
-  final String price;
-  String? tag;
-
-  MenuItemData withTag(String label) {
-    tag = label;
-    return this;
-  }
-}
-
-class MenuItemTile extends StatelessWidget {
-  const MenuItemTile(this.data, {super.key});
-
-  final MenuItemData data;
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        title: Text(data.name, style: const TextStyle(fontWeight: FontWeight.w600)),
-        subtitle: Text(data.description),
-        trailing: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Text(data.price, style: const TextStyle(fontWeight: FontWeight.bold)),
-            if (data.tag != null)
-              Container(
-                margin: const EdgeInsets.only(top: 6),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.green.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Text(
-                  data.tag!,
-                  style: const TextStyle(fontSize: 12, color: Colors.green),
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class AnnouncementData {
-  AnnouncementData(this.title, this.body);
-
-  final String title;
-  final String body;
-}
-
-class AnnouncementCard extends StatelessWidget {
-  const AnnouncementCard(this.data, {super.key});
-
-  final AnnouncementData data;
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      color: Colors.amber.shade50,
-      margin: const EdgeInsets.only(bottom: 12),
-      child: ListTile(
-        leading: const Icon(Icons.campaign_outlined),
-        title: Text(data.title, style: const TextStyle(fontWeight: FontWeight.w600)),
-        subtitle: Text(data.body),
-      ),
-    );
-  }
-}
-
-class SectionHeader extends StatelessWidget {
-  const SectionHeader({required this.title, super.key});
-
-  final String title;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          title,
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-        ),
-        TextButton(onPressed: () {}, child: const Text('See all')),
-      ],
-    );
+    final dashboard = context.watch<DashboardController>();
+    if (dashboard.isLoading && dashboard.students.isEmpty) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+    return const ParentHomeScreen();
   }
 }
