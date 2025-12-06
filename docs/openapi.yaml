@@ -38,6 +38,14 @@ paths:
                 country_code:
                   type: string
                   example: "+91"
+                school_id:
+                  type: string
+                  format: uuid
+                  description: Optional when a short code is not available.
+                school_code:
+                  type: string
+                  example: "SVS1"
+                  description: Short code assigned by XAndera Ops. Preferred over raw UUIDs.
       responses:
         '202':
           description: OTP sent
@@ -61,6 +69,14 @@ paths:
                   type: string
                 otp:
                   type: string
+                school_id:
+                  type: string
+                  format: uuid
+                  description: Required if school_code is not provided.
+                school_code:
+                  type: string
+                  example: "SVS1"
+                  description: Short code that maps to the school UUID.
                 device_id:
                   type: string
                   description: Identifier for push notifications

@@ -8,7 +8,7 @@ import { VerifyOtpDto } from './dto/verify-otp.dto';
 import { AuthResponseDto } from './dto/auth-response.dto';
 import { OtpService } from './otp.service';
 import { UserRole } from './enums/user-role.enum';
-import { ParentEntity } from '../../database/entities';
+import { ParentEntity, SchoolEntity } from '../../database/entities';
 import { UserPayload } from './interfaces/user-payload.interface';
 
 @Injectable()
@@ -22,6 +22,8 @@ export class AuthService {
     private readonly configService: ConfigService,
     @InjectRepository(ParentEntity)
     private readonly parentRepository: Repository<ParentEntity>,
+    @InjectRepository(SchoolEntity)
+    private readonly schoolRepository: Repository<SchoolEntity>,
   ) {}
 
   sendOtp(payload: LoginRequestDto) {
@@ -91,20 +93,48 @@ export class AuthService {
     let parent = await this.parentRepository.findOne({
       where: { mobile: payload.mobile },
     });
+    const schoolId = await this.resolveSchoolIdentifier(
+      payload.school_id,
+      payload.school_code,
+    );
     if (!parent) {
-      if (!payload.school_id) {
+      if (!schoolId) {
         throw new BadRequestException(
-          'school_id is required for parent onboarding',
+          'school_id or school_code is required for parent onboarding',
         );
       }
       parent = this.parentRepository.create({
         mobile: payload.mobile,
-        schoolId: payload.school_id,
+        schoolId,
         status: 'active',
       });
       parent = await this.parentRepository.save(parent);
+    } else if (schoolId && parent.schoolId !== schoolId) {
+      throw new BadRequestException(
+        'This parent is linked to a different school.',
+      );
     }
     return parent;
+  }
+
+  private async resolveSchoolIdentifier(
+    schoolId?: string,
+    schoolCode?: string,
+  ) {
+    if (schoolId) {
+      return schoolId;
+    }
+    if (!schoolCode) {
+      return null;
+    }
+    const normalized = schoolCode.trim().toUpperCase();
+    const school = await this.schoolRepository.findOne({
+      where: { schoolCode: normalized },
+    });
+    if (!school) {
+      throw new BadRequestException('Invalid school code provided.');
+    }
+    return school.id;
   }
 
   private async issueTokens(payload: UserPayload): Promise<AuthResponseDto> {

@@ -27,12 +27,16 @@ const announcements = [
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '';
 const DEMO_SCHOOL_ID = import.meta.env.VITE_DEMO_SCHOOL_ID ?? '';
+const DEMO_SCHOOL_CODE = import.meta.env.VITE_DEMO_SCHOOL_CODE ?? '';
 
 function App() {
   const [authToken, setAuthToken] = useState<string | null>(() =>
     localStorage.getItem('xandera.authToken'),
   );
-  const [schoolId, setSchoolId] = useState(DEMO_SCHOOL_ID);
+  const [schoolCode, setSchoolCode] = useState(
+    DEMO_SCHOOL_CODE ? DEMO_SCHOOL_CODE.toUpperCase() : '',
+  );
+  const [schoolId, setSchoolId] = useState(DEMO_SCHOOL_ID ?? '');
   const [mobile, setMobile] = useState('');
   const [otp, setOtp] = useState('');
   const [step, setStep] = useState<'enter' | 'verify'>('enter');
@@ -47,11 +51,22 @@ function App() {
     [],
   );
 
+  const buildSchoolIdentifier = () => {
+    if (schoolCode.trim()) {
+      return { school_code: schoolCode.trim().toUpperCase() };
+    }
+    if (schoolId.trim()) {
+      return { school_id: schoolId.trim() };
+    }
+    return null;
+  };
+
   const handleSendOtp = async () => {
     setError('');
     setStatus('');
-    if (!schoolId || mobile.trim().length !== 10) {
-      setError('Enter a 10-digit mobile number and school ID.');
+    const identifier = buildSchoolIdentifier();
+    if (!identifier || mobile.trim().length !== 10) {
+      setError('Enter a 10-digit mobile number and school code (or UUID).');
       return;
     }
     if (!API_BASE_URL) {
@@ -66,8 +81,8 @@ function App() {
         body: JSON.stringify({
           mobile,
           country_code: '+91',
-          school_id: schoolId,
           user_type: 'parent',
+          ...identifier,
         }),
       });
       if (!res.ok) {
@@ -86,8 +101,13 @@ function App() {
   const handleVerifyOtp = async () => {
     setError('');
     setStatus('');
+    const identifier = buildSchoolIdentifier();
     if (!otp || otp.length !== 6) {
       setError('Enter the 6-digit OTP (000000 for demo).');
+      return;
+    }
+    if (!identifier) {
+      setError('Provide the school code (or UUID) used for login.');
       return;
     }
     if (!API_BASE_URL) {
@@ -102,8 +122,8 @@ function App() {
         body: JSON.stringify({
           mobile,
           otp,
-          school_id: schoolId,
           user_type: 'parent',
+          ...identifier,
         }),
       });
       if (!res.ok) {
@@ -145,15 +165,36 @@ function App() {
         </p>
 
         <div className="mt-6 space-y-4">
-          <div>
-            <label className="text-sm font-medium text-slate-700">School ID</label>
-            <input
-              className="mt-1 w-full rounded-lg border border-slate-200 px-4 py-2 focus:border-primary focus:outline-none"
-              type="text"
-              value={schoolId}
-              onChange={(event) => setSchoolId(event.target.value)}
-              placeholder="e.g. 1e5b9d92-8b91-4c4f-a90f-6f1d6c8fd123"
-            />
+          <div className="space-y-2">
+            <div>
+              <label className="text-sm font-medium text-slate-700">
+                School Code
+              </label>
+              <input
+                className="mt-1 w-full rounded-lg border border-slate-200 px-4 py-2 uppercase focus:border-primary focus:outline-none"
+                type="text"
+                value={schoolCode}
+                onChange={(event) =>
+                  setSchoolCode(event.target.value.toUpperCase())
+                }
+                placeholder="e.g. SVS1"
+              />
+              <p className="mt-1 text-xs text-slate-400">
+                Each school gets a short code from XAndera Ops. Enter it here.
+              </p>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-slate-700">
+                School UUID (optional)
+              </label>
+              <input
+                className="mt-1 w-full rounded-lg border border-slate-200 px-4 py-2 focus:border-primary focus:outline-none"
+                type="text"
+                value={schoolId}
+                onChange={(event) => setSchoolId(event.target.value)}
+                placeholder="Use only if you have the raw UUID"
+              />
+            </div>
           </div>
 
           <div>

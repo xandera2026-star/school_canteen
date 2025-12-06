@@ -5,14 +5,14 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { OtpService } from './otp.service';
-import { ParentEntity } from '../../database/entities';
+import { ParentEntity, SchoolEntity } from '../../database/entities';
 import { JwtStrategy } from './jwt.strategy';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 
 @Module({
   imports: [
     ConfigModule,
-    TypeOrmModule.forFeature([ParentEntity]),
+    TypeOrmModule.forFeature([ParentEntity, SchoolEntity]),
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],

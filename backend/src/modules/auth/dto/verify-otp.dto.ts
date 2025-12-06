@@ -17,6 +17,10 @@ export class VerifyOtpDto {
   school_id?: string;
 
   @IsOptional()
+  @IsString()
+  school_code?: string;
+
+  @IsOptional()
   @IsEnum(UserRole)
   user_type?: UserRole;
 }

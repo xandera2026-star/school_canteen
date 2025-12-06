@@ -13,6 +13,10 @@ export class LoginRequestDto {
   school_id?: string;
 
   @IsOptional()
+  @IsString()
+  school_code?: string;
+
+  @IsOptional()
   @IsEnum(UserRole)
   user_type?: UserRole;
 }

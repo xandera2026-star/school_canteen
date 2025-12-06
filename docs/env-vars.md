@@ -31,6 +31,7 @@
 | VITE_BUILD_ENV | `staging` / `production` |
 | VITE_ENABLE_IOS_SUPPORT | Toggles iOS-specific messaging |
 | VITE_SENTRY_DSN | Frontend error monitoring |
+| VITE_DEMO_SCHOOL_CODE | Optional short code to prefill login |
 
 ## Mobile (Flutter)
 | Variable | Description |

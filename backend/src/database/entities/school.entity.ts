@@ -21,6 +21,9 @@ export class SchoolEntity extends AuditEntity {
   @Column({ name: 'owner_id', type: 'uuid' })
   ownerId: string;
 
+  @Column({ name: 'school_code', type: 'text', unique: true })
+  schoolCode: string;
+
   @Column({ name: 'name', type: 'text' })
   name: string;
 

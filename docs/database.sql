@@ -14,6 +14,7 @@ CREATE TYPE allergy_flag AS ENUM ('nuts', 'gluten', 'lactose', 'spicy');
 CREATE TABLE schools (
     school_id       UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     owner_id        UUID NOT NULL,
+    school_code     TEXT UNIQUE NOT NULL,
     name            TEXT NOT NULL,
     address_line1   TEXT NOT NULL,
     address_line2   TEXT,
