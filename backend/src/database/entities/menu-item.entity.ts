@@ -57,7 +57,7 @@ export class MenuItemEntity extends AuditEntity {
   allergens: AllergyFlag[];
 
   @Column({ name: 'availability', type: 'jsonb', nullable: true })
-  availability?: Record<string, unknown>;
+  availability?: Record<string, unknown> | null;
 
   @Column({ name: 'version', type: 'int', default: 1 })
   version: number;

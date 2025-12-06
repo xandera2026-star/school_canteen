@@ -110,20 +110,22 @@ export class AuthService {
   private async issueTokens(payload: UserPayload): Promise<AuthResponseDto> {
     const accessSecret = this.configService.get<string>(
       'JWT_SECRET',
-      'insecure-access-secret',
+      'incredible-secret-key',
     );
     const refreshSecret = this.configService.get<string>(
       'REFRESH_SECRET',
       accessSecret,
     );
-    const accessExpiresIn = this.configService.get<string>(
+    const accessExpiresRaw = this.configService.get<string>(
       'JWT_EXPIRY',
       '3600s',
     );
-    const refreshExpiresIn = this.configService.get<string>(
+    const refreshExpiresRaw = this.configService.get<string>(
       'REFRESH_EXPIRY',
       '30d',
     );
+    const accessExpiresIn = this.parseExpiry(accessExpiresRaw);
+    const refreshExpiresIn = this.parseExpiry(refreshExpiresRaw);
 
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(
@@ -145,13 +147,16 @@ export class AuthService {
     return {
       access_token: accessToken,
       refresh_token: refreshToken,
-      expires_in: this.parseExpiry(accessExpiresIn),
+      expires_in: accessExpiresIn,
       roles: payload.roles,
     };
   }
 
-  private parseExpiry(expiresIn: string): number {
-    const match = /^([0-9]+)([smhd])?$/.exec(expiresIn);
+  private parseExpiry(expiresIn?: string): number {
+    if (!expiresIn) {
+      return 3600;
+    }
+    const match = /^([0-9]+)([smhd])?$/i.exec(expiresIn);
     if (!match) {
       return 3600;
     }

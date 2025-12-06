@@ -16,12 +16,12 @@ export class AuthController {
   }
 
   @Post('verify-otp')
-  verifyOtp(@Body() payload: VerifyOtpDto): AuthResponseDto {
+  async verifyOtp(@Body() payload: VerifyOtpDto): Promise<AuthResponseDto> {
     return this.authService.verifyOtp(payload);
   }
 
   @Post('refresh')
-  refresh(@Body() payload: RefreshTokenDto): AuthResponseDto {
+  async refresh(@Body() payload: RefreshTokenDto): Promise<AuthResponseDto> {
     return this.authService.refreshTokens(payload.refresh_token);
   }
 }
