@@ -35,8 +35,7 @@ services:
     schedule: "0 1 * * *"
     env: docker
     plan: starter
-    buildCommand: ""
-    startCommand: bash backend/scripts/db_backup.sh
+    dockerCommand: bash backend/scripts/db_backup.sh
     envVars:
       - key: DATABASE_URL
         fromDatabase:
