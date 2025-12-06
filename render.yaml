@@ -19,17 +19,16 @@ services:
         sync: false
       - key: JWT_SECRET
         sync: false
-  - type: web
-    name: xandera-admin
-    env: static
-    plan: free
+staticSites:
+  - name: xandera-admin
     buildCommand: cd admin && npm ci && npm run build
-    staticPublishPath: admin/dist
+    publishPath: admin/dist
     envVars:
       - key: VITE_API_BASE_URL
         value: https://api.xandera-canteen.com/v1
       - key: VITE_FIREBASE_CONFIG
         sync: false
+
 databases:
   - name: xandera-postgres
     databaseName: xandera
