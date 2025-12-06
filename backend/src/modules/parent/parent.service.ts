@@ -154,6 +154,9 @@ export class ParentService {
     const menuMap = new Map(menuItems.map((item) => [item.id, item]));
     const totalAmount = payload.items.reduce((sum, line) => {
       const menuItem = menuMap.get(line.menu_item_id);
+      if (!menuItem) {
+        throw new BadRequestException('Menu item not found for order');
+      }
       return sum + Number(menuItem.price) * line.quantity;
     }, 0);
 
@@ -186,6 +189,9 @@ export class ParentService {
     order.currency = menuItems[0]?.currency ?? 'INR';
     order.items = payload.items.map((line) => {
       const menuItem = menuMap.get(line.menu_item_id);
+      if (!menuItem) {
+        throw new BadRequestException('Menu item not found for order');
+      }
       return this.orderItemRepository.create({
         schoolId: parent.schoolId,
         menuItemId: menuItem.id,

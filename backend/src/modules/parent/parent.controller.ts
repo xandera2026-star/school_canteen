@@ -16,7 +16,7 @@ import { OrderRequestDto } from './dto/order-request.dto';
 import { PaymentRequestDto } from './dto/payment-request.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import { UserPayload } from '../auth/interfaces/user-payload.interface';
+import type { UserPayload } from '../auth/interfaces/user-payload.interface';
 
 @UseGuards(JwtAuthGuard)
 @Controller({ path: 'parent', version: '1' })

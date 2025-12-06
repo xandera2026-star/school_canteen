@@ -14,7 +14,6 @@ import {
   PaymentEntity,
   StudentEntity,
 } from '../../database/entities';
-import { AuthModule } from '../auth/auth.module';
 
 @Module({
   imports: [
