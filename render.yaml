@@ -19,10 +19,12 @@ services:
         sync: false
       - key: JWT_SECRET
         sync: false
-staticSites:
-  - name: xandera-admin
+  - type: web
+    name: xandera-admin
+    env: static
+    plan: free
     buildCommand: cd admin && npm ci && npm run build
-    publishPath: admin/dist
+    staticPublishPath: admin/dist
     envVars:
       - key: VITE_API_BASE_URL
         value: https://api.xandera-canteen.com/v1
