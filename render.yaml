@@ -2,7 +2,7 @@ services:
   - type: web
     name: xandera-backend
     env: node
-    plan: starter
+    plan: free
     buildCommand: cd backend && npm ci && npm run build
     startCommand: cd backend && npm run start:prod
     autoDeploy: true
@@ -22,7 +22,7 @@ services:
   - type: web
     name: xandera-admin
     env: static
-    plan: starter
+    plan: free
     buildCommand: cd admin && npm ci && npm run build
     staticPublishPath: admin/dist
     envVars:
@@ -34,7 +34,7 @@ services:
     name: xandera-db-backup
     schedule: "0 1 * * *"
     env: docker
-    plan: starter
+    plan: free
     dockerCommand: bash backend/scripts/db_backup.sh
     envVars:
       - key: DATABASE_URL
