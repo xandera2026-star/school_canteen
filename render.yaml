@@ -19,24 +19,8 @@ services:
         sync: false
       - key: JWT_SECRET
         sync: false
-  - type: static
-    name: xandera-admin
-    buildCommand: cd admin && npm ci && npm run build
-    publishPath: admin/dist
-    envVars:
-      - key: VITE_API_BASE_URL
-        value: https://api.xandera-canteen.com/v1
-      - key: VITE_FIREBASE_CONFIG
-        sync: false
-
-  - type: postgres
-    name: xandera-postgres
-    plan: starter
-    databases:
-      - name: xandera
-
-cronJobs:
-  - name: xandera-db-backup
+  - type: cron
+    name: xandera-db-backup
     schedule: "0 1 * * *"
     env: docker
     plan: starter
@@ -50,3 +34,19 @@ cronJobs:
         sync: false
       - key: BACKUP_AUTH_HEADER
         sync: false
+
+staticSites:
+  - name: xandera-admin
+    buildCommand: cd admin && npm ci && npm run build
+    publishPath: admin/dist
+    envVars:
+      - key: VITE_API_BASE_URL
+        value: https://api.xandera-canteen.com/v1
+      - key: VITE_FIREBASE_CONFIG
+        sync: false
+
+databases:
+  - name: xandera-postgres
+    databaseName: xandera
+    user: xandera
+    plan: starter
