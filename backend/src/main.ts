@@ -8,6 +8,15 @@ async function bootstrap() {
     bufferLogs: true,
   });
 
+  const corsOrigins = process.env.CORS_ORIGINS
+    ?.split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+  app.enableCors({
+    origin: corsOrigins && corsOrigins.length > 0 ? corsOrigins : true,
+    credentials: true,
+  });
+
   app.setGlobalPrefix('v1');
   app.enableVersioning({ type: VersioningType.URI });
   app.useGlobalPipes(

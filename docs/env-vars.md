@@ -21,6 +21,7 @@
 | SENTRY_DSN | Backend error monitoring (Sentry) |
 | BACKUP_BUCKET_URL | Object storage endpoint for DB dumps |
 | BACKUP_AUTH_HEADER | Auth header/token for uploading backups |
+| CORS_ORIGINS | Comma-separated list of allowed frontend origins |
 
 ## Admin Web (React + Vite)
 | Variable | Description |
