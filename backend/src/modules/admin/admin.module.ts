@@ -11,6 +11,7 @@ import {
   ParentChildEntity,
   ParentEntity,
   PaymentEntity,
+  SchoolEntity,
   SchoolSettingsEntity,
   StudentEntity,
 } from '../../database/entities';
@@ -22,6 +23,7 @@ import {
       ParentEntity,
       ParentChildEntity,
       StudentEntity,
+      SchoolEntity,
       MenuCategoryEntity,
       MenuItemEntity,
       OrderEntity,
