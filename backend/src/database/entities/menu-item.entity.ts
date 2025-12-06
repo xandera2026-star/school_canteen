@@ -21,6 +21,7 @@ export class MenuItemEntity extends AuditEntity {
   schoolId: string;
 
   @ManyToOne(() => SchoolEntity, (school) => school.menuItems)
+  @JoinColumn({ name: 'school_id' })
   school: SchoolEntity;
 
   @Column({ name: 'category_id', type: 'uuid' })

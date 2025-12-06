@@ -23,6 +23,7 @@ export class OrderEntity extends AuditEntity {
   schoolId: string;
 
   @ManyToOne(() => SchoolEntity, (school) => school.orders)
+  @JoinColumn({ name: 'school_id' })
   school: SchoolEntity;
 
   @Column({ name: 'student_id', type: 'uuid' })

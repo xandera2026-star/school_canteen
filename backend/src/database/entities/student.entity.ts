@@ -1,6 +1,7 @@
 import {
   Column,
   Entity,
+  JoinColumn,
   ManyToOne,
   OneToMany,
   PrimaryGeneratedColumn,
@@ -20,6 +21,7 @@ export class StudentEntity extends AuditEntity {
   schoolId: string;
 
   @ManyToOne(() => SchoolEntity, (school) => school.students)
+  @JoinColumn({ name: 'school_id' })
   school: SchoolEntity;
 
   @Column({ name: 'name', type: 'text' })

@@ -1,4 +1,10 @@
-import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Column,
+  Entity,
+  JoinColumn,
+  ManyToOne,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
 import { AuditEntity } from './base.entity';
 import { SchoolEntity } from './school.entity';
 import { SubscriptionPlan } from '../enums';
@@ -12,6 +18,7 @@ export class SubscriptionEntity extends AuditEntity {
   schoolId: string;
 
   @ManyToOne(() => SchoolEntity, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'school_id' })
   school: SchoolEntity;
 
   @Column({ name: 'plan', type: 'enum', enum: SubscriptionPlan })
