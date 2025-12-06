@@ -30,24 +30,8 @@ services:
         value: https://api.xandera-canteen.com/v1
       - key: VITE_FIREBASE_CONFIG
         sync: false
-  - type: cron
-    name: xandera-db-backup
-    schedule: "0 1 * * *"
-    env: docker
-    plan: starter
-    dockerCommand: bash backend/scripts/db_backup.sh
-    envVars:
-      - key: DATABASE_URL
-        fromDatabase:
-          name: xandera-postgres
-          property: connectionString
-      - key: BACKUP_BUCKET_URL
-        sync: false
-      - key: BACKUP_AUTH_HEADER
-        sync: false
-
 databases:
   - name: xandera-postgres
     databaseName: xandera
     user: xandera
-    plan: starter
+    plan: free
