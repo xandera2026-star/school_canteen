@@ -34,7 +34,7 @@ services:
     name: xandera-db-backup
     schedule: "0 1 * * *"
     env: docker
-    plan: free
+    plan: starter
     dockerCommand: bash backend/scripts/db_backup.sh
     envVars:
       - key: DATABASE_URL
