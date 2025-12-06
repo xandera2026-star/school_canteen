@@ -19,7 +19,7 @@ services:
         sync: false
       - key: JWT_SECRET
         sync: false
-  - type: static_site
+  - type: static
     name: xandera-admin
     buildCommand: cd admin && npm ci && npm run build
     publishPath: admin/dist
