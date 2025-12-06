@@ -2,6 +2,7 @@ services:
   - type: web
     name: xandera-backend
     env: node
+    rootDir: backend
     buildCommand: npm ci && npm run build
     startCommand: npm run start:prod
     autoDeploy: true
@@ -21,6 +22,7 @@ services:
   - type: web
     name: xandera-admin
     env: static
+    rootDir: admin
     buildCommand: npm ci && npm run build
     staticPublishPath: dist
     envVars:
