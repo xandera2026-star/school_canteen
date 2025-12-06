@@ -17,7 +17,7 @@ import { ThemeSettingsDto } from './dto/theme-settings.dto';
 import { CutoffSettingsDto } from './dto/cutoff-settings.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import { UserPayload } from '../auth/interfaces/user-payload.interface';
+import type { UserPayload } from '../auth/interfaces/user-payload.interface';
 
 @UseGuards(JwtAuthGuard)
 @Controller({ path: 'admin', version: '1' })

@@ -1,6 +1,6 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource } from 'typeorm';
+import { Repository, DataSource, FindOptionsWhere } from 'typeorm';
 import { parse } from 'csv-parse/sync';
 import { randomUUID } from 'crypto';
 import { MenuCategoryInputDto } from './dto/menu-category-input.dto';
@@ -117,7 +117,7 @@ export class AdminService {
         }
 
         const allergies = this.parseAllergies(row.allergy_info);
-        const studentWhere: Partial<StudentEntity> = {
+        const studentWhere: FindOptionsWhere<StudentEntity> = {
           schoolId: user.schoolId,
         };
         if (row.roll_number) {
@@ -242,7 +242,9 @@ export class AdminService {
       currency: payload.currency ?? 'INR',
       nutrition: payload.nutrition,
       allergens: payload.allergens as AllergyFlag[] | undefined,
-      availability: payload.availability,
+      availability: payload.availability
+        ? { ...payload.availability }
+        : undefined,
       imageUrl: payload.image_url,
       isActive: payload.is_active ?? true,
     });
