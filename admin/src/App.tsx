@@ -57,6 +57,11 @@ function App() {
   const [loadingDashboard, setLoadingDashboard] = useState(false);
   const [loadingMenu, setLoadingMenu] = useState(false);
   const [menuError, setMenuError] = useState('');
+  const [themePrimary, setThemePrimary] = useState('#2563EB');
+  const [themeAccent, setThemeAccent] = useState('#F97316');
+  const [themeLogoUrl, setThemeLogoUrl] = useState('');
+  const [cutoffTime, setCutoffTime] = useState('09:00');
+  const [cutoffTimezone, setCutoffTimezone] = useState('Asia/Kolkata');
 
   const announcementStorageKey = useMemo(() => {
     const key = schoolCode || schoolId;
@@ -310,6 +315,39 @@ function App() {
       setStatus('Category created successfully.');
     } catch (err) {
       setMenuError((err as Error).message);
+    }
+  };
+
+  const handleUpdateTheme = async () => {
+    try {
+      await apiRequest(API_BASE_URL, '/admin/theme', {
+        method: 'PUT',
+        body: JSON.stringify({
+          primary_color: themePrimary,
+          accent_color: themeAccent,
+          logo_url: themeLogoUrl || undefined,
+        }),
+        token: authToken,
+      });
+      setStatus('Theme updated for this school.');
+    } catch (err) {
+      setError((err as Error).message);
+    }
+  };
+
+  const handleUpdateCutoff = async () => {
+    try {
+      await apiRequest(API_BASE_URL, '/admin/cutoff', {
+        method: 'PUT',
+        body: JSON.stringify({
+          cutoff_time: `${cutoffTime}:00`,
+          timezone: cutoffTimezone,
+        }),
+        token: authToken,
+      });
+      setStatus('Cut-off settings updated.');
+    } catch (err) {
+      setError((err as Error).message);
     }
   };
 
@@ -595,6 +633,25 @@ function App() {
             onCreateItem={handleCreateMenuItem}
           />
         </section>
+
+        <section className="grid gap-6 lg:grid-cols-2">
+          <ThemeSettingsCard
+            primary={themePrimary}
+            accent={themeAccent}
+            logoUrl={themeLogoUrl}
+            onPrimaryChange={setThemePrimary}
+            onAccentChange={setThemeAccent}
+            onLogoChange={setThemeLogoUrl}
+            onSave={handleUpdateTheme}
+          />
+          <CutoffSettingsCard
+            cutoffTime={cutoffTime}
+            timezone={cutoffTimezone}
+            onCutoffChange={setCutoffTime}
+            onTimezoneChange={setCutoffTimezone}
+            onSave={handleUpdateCutoff}
+          />
+        </section>
       </main>
     </div>
   );
@@ -821,6 +878,121 @@ function MenuManager({
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+type ThemeSettingsProps = {
+  primary: string;
+  accent: string;
+  logoUrl: string;
+  onPrimaryChange: (value: string) => void;
+  onAccentChange: (value: string) => void;
+  onLogoChange: (value: string) => void;
+  onSave: () => void;
+};
+
+function ThemeSettingsCard({
+  primary,
+  accent,
+  logoUrl,
+  onPrimaryChange,
+  onAccentChange,
+  onLogoChange,
+  onSave,
+}: ThemeSettingsProps) {
+  return (
+    <div className="rounded-lg bg-white p-6 shadow-sm space-y-4">
+      <h2 className="text-lg font-semibold text-slate-900">Branding</h2>
+      <p className="text-sm text-slate-500">
+        Configure the primary/secondary colors and logo that the parent app and admin
+        portal will use for this school.
+      </p>
+      <div className="space-y-3">
+        <label className="text-sm font-medium text-slate-700">Primary color</label>
+        <input
+          type="color"
+          value={primary}
+          onChange={(event) => onPrimaryChange(event.target.value)}
+          className="h-10 w-20 cursor-pointer rounded border border-slate-200"
+        />
+      </div>
+      <div className="space-y-3">
+        <label className="text-sm font-medium text-slate-700">Accent color</label>
+        <input
+          type="color"
+          value={accent}
+          onChange={(event) => onAccentChange(event.target.value)}
+          className="h-10 w-20 cursor-pointer rounded border border-slate-200"
+        />
+      </div>
+      <div className="space-y-2">
+        <label className="text-sm font-medium text-slate-700">Logo URL</label>
+        <input
+          type="url"
+          className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
+          value={logoUrl}
+          onChange={(event) => onLogoChange(event.target.value)}
+          placeholder="https://cdn.xandera.com/logos/saraswathi.png"
+        />
+      </div>
+      <button
+        className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
+        onClick={onSave}
+      >
+        Save theme
+      </button>
+    </div>
+  );
+}
+
+type CutoffSettingsProps = {
+  cutoffTime: string;
+  timezone: string;
+  onCutoffChange: (value: string) => void;
+  onTimezoneChange: (value: string) => void;
+  onSave: () => void;
+};
+
+function CutoffSettingsCard({
+  cutoffTime,
+  timezone,
+  onCutoffChange,
+  onTimezoneChange,
+  onSave,
+}: CutoffSettingsProps) {
+  return (
+    <div className="rounded-lg bg-white p-6 shadow-sm space-y-4">
+      <h2 className="text-lg font-semibold text-slate-900">Cut-off & Timezone</h2>
+      <p className="text-sm text-slate-500">
+        Update the order submission cut-off and timezone for this school. Parents will be
+        blocked from placing orders after this time each day.
+      </p>
+      <div className="space-y-2">
+        <label className="text-sm font-medium text-slate-700">Cut-off time</label>
+        <input
+          type="time"
+          className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
+          value={cutoffTime}
+          onChange={(event) => onCutoffChange(event.target.value)}
+        />
+      </div>
+      <div className="space-y-2">
+        <label className="text-sm font-medium text-slate-700">Timezone</label>
+        <input
+          type="text"
+          className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
+          value={timezone}
+          onChange={(event) => onTimezoneChange(event.target.value)}
+          placeholder="Asia/Kolkata"
+        />
+      </div>
+      <button
+        className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
+        onClick={onSave}
+      >
+        Save cut-off
+      </button>
     </div>
   );
 }
