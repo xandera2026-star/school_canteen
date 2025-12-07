@@ -103,6 +103,7 @@ jobs:
       - run: flutter test
       - run: flutter build appbundle
       - run: flutter build ipa --no-codesign
+        if: runner.os == 'macOS'
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
