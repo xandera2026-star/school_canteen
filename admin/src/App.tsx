@@ -1,33 +1,34 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import './index.css';
-
-const summaryCards = [
-  { label: 'Orders Today', value: '152' },
-  { label: 'Google Pay (₹)', value: '8,200' },
-  { label: 'Cash (₹)', value: '3,100' },
-  { label: 'Students Pending', value: '34' },
-];
-
-const topItems = [
-  { name: 'Lemon Rice', count: 120 },
-  { name: 'Veg Biriyani', count: 80 },
-  { name: 'Plain Dosa', count: 40 },
-];
-
-const announcements = [
-  {
-    title: 'Special of the Day',
-    body: 'Mini Idli with Sambar and chutney.',
-  },
-  {
-    title: 'Cut-off Reminder',
-    body: 'Parents must place orders before 09:00 AM.',
-  },
-];
+import { apiRequest } from './lib/api';
+import type {
+  DashboardResponse,
+  DashboardMissingStudent,
+  MenuCategory,
+  MenuItem,
+  ImportStats,
+  ListResponse,
+} from './types';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '';
 const DEMO_SCHOOL_ID = import.meta.env.VITE_DEMO_SCHOOL_ID ?? '';
 const DEMO_SCHOOL_CODE = import.meta.env.VITE_DEMO_SCHOOL_CODE ?? '';
+
+type Announcement = {
+  id: string;
+  title: string;
+  body: string;
+  createdAt: string;
+};
+
+const defaultAnnouncements: Announcement[] = [
+  {
+    id: 'welcome',
+    title: 'Welcome to XAndera Admin',
+    body: 'Use this workspace to manage students, menus, and cut-off settings.',
+    createdAt: new Date().toISOString(),
+  },
+];
 
 function App() {
   const [authToken, setAuthToken] = useState<string | null>(() =>
@@ -44,14 +45,42 @@ function App() {
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const headers = useMemo(
-    () => ({
-      'Content-Type': 'application/json',
-    }),
-    [],
+  const [dashboard, setDashboard] = useState<DashboardResponse['data'] | null>(
+    null,
   );
+  const [categories, setCategories] = useState<MenuCategory[]>([]);
+  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+  const [announcements, setAnnouncements] = useState<Announcement[]>(
+    defaultAnnouncements,
+  );
+  const [importStats, setImportStats] = useState<ImportStats | null>(null);
+  const [loadingDashboard, setLoadingDashboard] = useState(false);
+  const [loadingMenu, setLoadingMenu] = useState(false);
+  const [menuError, setMenuError] = useState('');
 
-  const buildSchoolIdentifier = () => {
+  const announcementStorageKey = useMemo(() => {
+    const key = schoolCode || schoolId;
+    return key ? `xandera.announcements.${key}` : 'xandera.announcements';
+  }, [schoolCode, schoolId]);
+
+  useEffect(() => {
+    const stored = localStorage.getItem(announcementStorageKey);
+    if (stored) {
+      try {
+        setAnnouncements(JSON.parse(stored));
+      } catch (err) {
+        setAnnouncements(defaultAnnouncements);
+      }
+    } else {
+      setAnnouncements(defaultAnnouncements);
+    }
+  }, [announcementStorageKey]);
+
+  useEffect(() => {
+    localStorage.setItem(announcementStorageKey, JSON.stringify(announcements));
+  }, [announcementStorageKey, announcements]);
+
+  const identifier = useMemo(() => {
     if (schoolCode.trim()) {
       return { school_code: schoolCode.trim().toUpperCase() };
     }
@@ -59,12 +88,18 @@ function App() {
       return { school_id: schoolId.trim() };
     }
     return null;
-  };
+  }, [schoolCode, schoolId]);
+
+  const buildHeaders = useMemo(
+    () => ({
+      'Content-Type': 'application/json',
+    }),
+    [],
+  );
 
   const handleSendOtp = async () => {
     setError('');
     setStatus('');
-    const identifier = buildSchoolIdentifier();
     if (!identifier || mobile.trim().length !== 10) {
       setError('Enter a 10-digit mobile number and school code (or UUID).');
       return;
@@ -77,7 +112,7 @@ function App() {
       setIsSubmitting(true);
       const res = await fetch(`${API_BASE_URL}/auth/login`, {
         method: 'POST',
-        headers,
+        headers: buildHeaders,
         body: JSON.stringify({
           mobile,
           country_code: '+91',
@@ -101,7 +136,6 @@ function App() {
   const handleVerifyOtp = async () => {
     setError('');
     setStatus('');
-    const identifier = buildSchoolIdentifier();
     if (!otp || otp.length !== 6) {
       setError('Enter the 6-digit OTP (000000 for demo).');
       return;
@@ -118,7 +152,7 @@ function App() {
       setIsSubmitting(true);
       const res = await fetch(`${API_BASE_URL}/auth/verify-otp`, {
         method: 'POST',
-        headers,
+        headers: buildHeaders,
         body: JSON.stringify({
           mobile,
           otp,
@@ -145,7 +179,7 @@ function App() {
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = useCallback(() => {
     localStorage.removeItem('xandera.authToken');
     setAuthToken(null);
     setMobile('');
@@ -153,6 +187,172 @@ function App() {
     setStep('enter');
     setStatus('');
     setError('');
+    setDashboard(null);
+    setCategories([]);
+    setMenuItems([]);
+    setImportStats(null);
+  }, []);
+
+  const handleSwitchSchool = () => {
+    const value = window.prompt(
+      'Enter the next school code (like SVS1) or UUID:',
+      schoolCode || schoolId,
+    );
+    if (!value) {
+      return;
+    }
+    if (value.length <= 8) {
+      setSchoolCode(value.toUpperCase());
+      setSchoolId('');
+    } else {
+      setSchoolId(value);
+      setSchoolCode('');
+    }
+    handleLogout();
+  };
+
+  const authorizedRequest = useCallback(
+    async <T,>(path: string) => {
+      if (!API_BASE_URL) {
+        throw new Error('API base URL missing');
+      }
+      return apiRequest<T>(API_BASE_URL, path, {
+        token: authToken,
+      });
+    },
+    [authToken],
+  );
+
+  const fetchDashboard = useCallback(async () => {
+    try {
+      setLoadingDashboard(true);
+      const response = await authorizedRequest<DashboardResponse>(
+        '/admin/dashboard',
+      );
+      setDashboard(response.data);
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setLoadingDashboard(false);
+    }
+  }, [authorizedRequest]);
+
+  const fetchMenuData = useCallback(async () => {
+    try {
+      setLoadingMenu(true);
+      setMenuError('');
+      const [categoryResponse, itemResponse] = await Promise.all([
+        authorizedRequest<ListResponse<MenuCategory[]>>('/admin/menu-categories'),
+        authorizedRequest<ListResponse<MenuItem[]>>('/admin/menu-items'),
+      ]);
+      setCategories(categoryResponse.data);
+      setMenuItems(itemResponse.data);
+    } catch (err) {
+      setMenuError((err as Error).message);
+    } finally {
+      setLoadingMenu(false);
+    }
+  }, [authorizedRequest]);
+
+  useEffect(() => {
+    if (authToken) {
+      void fetchDashboard();
+      void fetchMenuData();
+    }
+  }, [authToken, fetchDashboard, fetchMenuData]);
+
+  const handleStudentImport = async (file: File | null) => {
+    if (!file) {
+      setError('Please pick a CSV file first.');
+      return;
+    }
+    if (!API_BASE_URL) {
+      setError('API base URL missing.');
+      return;
+    }
+    try {
+      setError('');
+      const formData = new FormData();
+      formData.append('file', file);
+      const response = await apiRequest<ListResponse<ImportStats>>(
+        API_BASE_URL,
+        '/admin/students/import',
+        {
+          method: 'POST',
+          body: formData,
+          token: authToken,
+          isFormData: true,
+        },
+      );
+      setImportStats(response.data);
+      setStatus(
+        `Imported ${response.data.students_created} new students (processed ${response.data.processed} rows).`,
+      );
+      await fetchDashboard();
+    } catch (err) {
+      setError((err as Error).message);
+    }
+  };
+
+  const handleCreateCategory = async (payload: {
+    name: string;
+    type: string;
+    description?: string;
+  }) => {
+    try {
+      setMenuError('');
+      await apiRequest(API_BASE_URL, '/admin/menu-categories', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+        token: authToken,
+      });
+      await fetchMenuData();
+      setStatus('Category created successfully.');
+    } catch (err) {
+      setMenuError((err as Error).message);
+    }
+  };
+
+  const handleCreateMenuItem = async () => {
+    const name = window.prompt('Item name');
+    if (!name) return;
+    const priceValue = window.prompt('Price in INR', '80');
+    if (!priceValue) return;
+    const categoryId =
+      categories[0]?.category_id ??
+      window.prompt('Category ID (use menu categories list)') ??
+      '';
+    if (!categoryId) {
+      window.alert('Category is required.');
+      return;
+    }
+    try {
+      await apiRequest(API_BASE_URL, '/admin/menu-items', {
+        method: 'POST',
+        body: JSON.stringify({
+          name,
+          price: Number(priceValue),
+          currency: 'INR',
+          category_id: categoryId,
+          is_active: true,
+        }),
+        token: authToken,
+      });
+      await fetchMenuData();
+      setStatus(`Menu item "${name}" added.`);
+    } catch (err) {
+      setMenuError((err as Error).message);
+    }
+  };
+
+  const handleAddAnnouncement = (title: string, body: string) => {
+    const entry: Announcement = {
+      id: crypto.randomUUID(),
+      title,
+      body,
+      createdAt: new Date().toISOString(),
+    };
+    setAnnouncements((prev) => [entry, ...prev]);
   };
 
   const renderLogin = () => (
@@ -219,7 +419,9 @@ function App() {
                 inputMode="numeric"
                 maxLength={6}
                 value={otp}
-                onChange={(event) => setOtp(event.target.value.replace(/[^0-9]/g, ''))}
+                onChange={(event) =>
+                  setOtp(event.target.value.replace(/[^0-9]/g, ''))
+                }
                 placeholder="000000"
               />
             </div>
@@ -259,18 +461,33 @@ function App() {
     </div>
   );
 
+  const renderAnnouncements = () => {
+    const title = window.prompt('Announcement title');
+    if (!title) return;
+    const body = window.prompt('Announcement details');
+    if (!body) return;
+    handleAddAnnouncement(title, body);
+  };
+
+  const studentsPendingCount = dashboard?.missing_students.length ?? 0;
+
   const renderDashboard = () => (
     <div className="min-h-screen bg-slate-50">
       <header className="bg-white shadow-sm">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-6 py-4">
           <div>
             <p className="text-xs uppercase tracking-widest text-slate-500">
               XAndera Admin Portal
             </p>
-            <h1 className="text-2xl font-semibold text-slate-900">Saraswathi Vidyalaya</h1>
+            <h1 className="text-2xl font-semibold text-slate-900">
+              {schoolCode || 'Your School'}
+            </h1>
           </div>
-          <div className="flex items-center gap-3">
-            <button className="rounded-md bg-slate-100 px-4 py-2 text-sm font-medium text-slate-700">
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              className="rounded-md bg-slate-100 px-4 py-2 text-sm font-medium text-slate-700"
+              onClick={handleSwitchSchool}
+            >
               Switch School
             </button>
             <button
@@ -283,54 +500,329 @@ function App() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-6xl px-6 py-8">
+      <main className="mx-auto max-w-6xl px-6 py-8 space-y-8">
         <section className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          {summaryCards.map((card) => (
-            <div key={card.label} className="rounded-lg bg-white p-4 shadow-sm">
-              <p className="text-xs uppercase tracking-wide text-slate-500">{card.label}</p>
-              <p className="mt-2 text-2xl font-semibold text-slate-900">{card.value}</p>
-            </div>
-          ))}
+          <DashboardCard
+            label="Orders Today"
+            value={loadingDashboard ? '…' : dashboard?.orders_today ?? '--'}
+          />
+          <DashboardCard
+            label="Google Pay (₹)"
+            value={
+              loadingDashboard ? '…' : dashboard?.gpay_total.toLocaleString() ?? '--'
+            }
+          />
+          <DashboardCard
+            label="Cash (₹)"
+            value={
+              loadingDashboard ? '…' : dashboard?.cash_total.toLocaleString() ?? '--'
+            }
+          />
+          <DashboardCard
+            label="Students Pending"
+            value={loadingDashboard ? '…' : studentsPendingCount}
+            hint="Active students who have not ordered yet today."
+          />
         </section>
 
-        <section className="mt-8 grid gap-6 lg:grid-cols-3">
+        <section className="grid gap-6 lg:grid-cols-3">
           <div className="rounded-lg bg-white p-6 shadow-sm lg:col-span-2">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-slate-900">Top Items</h2>
-              <button className="text-sm font-medium text-primary">Export summary</button>
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <h2 className="text-lg font-semibold text-slate-900">
+                Top Items
+              </h2>
+              <span className="text-sm text-slate-500">
+                {dashboard?.date ?? ''}
+              </span>
             </div>
-            <ul className="mt-4 space-y-3">
-              {topItems.map((item) => (
-                <li key={item.name} className="flex items-center justify-between">
-                  <span className="text-slate-700">{item.name}</span>
-                  <span className="rounded-full bg-slate-100 px-3 py-1 text-sm font-medium text-slate-600">
-                    {item.count}
-                  </span>
-                </li>
-              ))}
-            </ul>
+            {loadingDashboard && <p className="mt-4 text-sm text-slate-500">Loading…</p>}
+            {!loadingDashboard && (
+              <ul className="mt-4 space-y-3">
+                {dashboard?.top_items.map((item) => (
+                  <li key={item.name} className="flex items-center justify-between">
+                    <span className="text-slate-700">{item.name}</span>
+                    <span className="rounded-full bg-slate-100 px-3 py-1 text-sm font-medium text-slate-600">
+                      {item.count}
+                    </span>
+                  </li>
+                ))}
+                {dashboard?.top_items.length === 0 && (
+                  <li className="rounded-md border border-dashed border-slate-200 p-4 text-sm text-slate-500">
+                    No orders yet for the selected date.
+                  </li>
+                )}
+              </ul>
+            )}
           </div>
 
           <div className="rounded-lg bg-white p-6 shadow-sm">
             <h2 className="text-lg font-semibold text-slate-900">Announcements</h2>
             <div className="mt-4 space-y-4">
               {announcements.map((item) => (
-                <article key={item.title} className="rounded-md border border-slate-100 p-4">
-                  <h3 className="text-sm font-semibold text-slate-800">{item.title}</h3>
+                <article key={item.id} className="rounded-md border border-slate-100 p-4">
+                  <h3 className="text-sm font-semibold text-slate-800">
+                    {item.title}
+                  </h3>
                   <p className="mt-1 text-sm text-slate-600">{item.body}</p>
+                  <p className="mt-2 text-xs text-slate-400">
+                    {new Date(item.createdAt).toLocaleString()}
+                  </p>
                 </article>
               ))}
             </div>
-            <button className="mt-4 w-full rounded-md border border-dashed border-slate-300 py-2 text-sm font-medium text-slate-600">
+            <button
+              className="mt-4 w-full rounded-md border border-dashed border-slate-300 py-2 text-sm font-medium text-slate-600"
+              onClick={renderAnnouncements}
+            >
               Publish new announcement
             </button>
           </div>
+        </section>
+
+        <section className="grid gap-6 lg:grid-cols-2">
+          <StudentImportCard
+            onImport={handleStudentImport}
+            stats={importStats}
+            pendingStudents={dashboard?.missing_students ?? []}
+          />
+          <MenuManager
+            categories={categories}
+            items={menuItems}
+            loading={loadingMenu}
+            error={menuError}
+            onRefresh={fetchMenuData}
+            onCreateCategory={handleCreateCategory}
+            onCreateItem={handleCreateMenuItem}
+          />
         </section>
       </main>
     </div>
   );
 
   return authToken ? renderDashboard() : renderLogin();
+}
+
+type DashboardCardProps = {
+  label: string;
+  value: string | number;
+  hint?: string;
+};
+
+function DashboardCard({ label, value, hint }: DashboardCardProps) {
+  return (
+    <div className="rounded-lg bg-white p-4 shadow-sm">
+      <p className="text-xs uppercase tracking-wide text-slate-500">{label}</p>
+      <p className="mt-2 text-2xl font-semibold text-slate-900">{value}</p>
+      {hint && <p className="mt-1 text-xs text-slate-400">{hint}</p>}
+    </div>
+  );
+}
+
+type StudentImportProps = {
+  onImport: (file: File | null) => Promise<void>;
+  stats: ImportStats | null;
+  pendingStudents: DashboardMissingStudent[];
+};
+
+function StudentImportCard({ onImport, stats, pendingStudents }: StudentImportProps) {
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
+  return (
+    <div className="rounded-lg bg-white p-6 shadow-sm space-y-4">
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-semibold text-slate-900">Students</h2>
+        <a
+          href="/docs/student_import_template.csv"
+          className="text-sm font-medium text-primary"
+          target="_blank"
+          rel="noreferrer"
+        >
+          Download template
+        </a>
+      </div>
+      <div className="rounded-lg border border-dashed border-slate-300 p-4 space-y-3">
+        <p className="text-sm text-slate-600">
+          Upload the CSV provided by XAndera onboarding. Existing students will be updated,
+          new ones will be created automatically.
+        </p>
+        <input
+          type="file"
+          accept=".csv"
+          onChange={(event) => setSelectedFile(event.target.files?.[0] ?? null)}
+        />
+        <button
+          className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
+          onClick={() => onImport(selectedFile)}
+        >
+          Import students
+        </button>
+        {stats && (
+          <p className="text-xs text-slate-500">
+            Last run processed {stats.processed} rows (created {stats.students_created} /
+            updated {stats.students_updated} students).
+          </p>
+        )}
+      </div>
+
+      <div>
+        <h3 className="text-sm font-semibold text-slate-800">
+          Students pending orders ({pendingStudents.length})
+        </h3>
+        <ul className="mt-3 max-h-48 space-y-2 overflow-y-auto text-sm text-slate-600">
+          {pendingStudents.map((student) => (
+            <li
+              key={student.student_id}
+              className="flex items-center justify-between rounded-md border border-slate-100 px-3 py-2"
+            >
+              <span>{student.name}</span>
+              <span className="text-xs text-slate-400">
+                {student.class ?? ''} {student.section ?? ''}
+              </span>
+            </li>
+          ))}
+          {pendingStudents.length === 0 && (
+            <li className="rounded-md border border-dashed border-slate-200 px-3 py-2 text-xs text-slate-400">
+              Everyone has ordered today. 🎉
+            </li>
+          )}
+        </ul>
+      </div>
+    </div>
+  );
+}
+
+type MenuManagerProps = {
+  categories: MenuCategory[];
+  items: MenuItem[];
+  loading: boolean;
+  error: string;
+  onRefresh: () => Promise<void>;
+  onCreateCategory: (
+    payload: { name: string; type: string; description?: string },
+  ) => Promise<void>;
+  onCreateItem: () => Promise<void>;
+};
+
+function MenuManager({
+  categories,
+  items,
+  loading,
+  error,
+  onRefresh,
+  onCreateCategory,
+  onCreateItem,
+}: MenuManagerProps) {
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [newCategoryType, setNewCategoryType] = useState('veg');
+
+  const handleCreate = () => {
+    if (!newCategoryName.trim()) {
+      window.alert('Category name is required.');
+      return;
+    }
+    void onCreateCategory({
+      name: newCategoryName.trim(),
+      type: newCategoryType,
+      description: '',
+    });
+    setNewCategoryName('');
+  };
+
+  return (
+    <div className="rounded-lg bg-white p-6 shadow-sm space-y-4">
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-semibold text-slate-900">Menu</h2>
+        <div className="flex gap-2">
+          <button
+            className="rounded-md border border-slate-200 px-3 py-1 text-sm text-slate-600"
+            onClick={onRefresh}
+          >
+            Refresh
+          </button>
+          <button
+            className="rounded-md bg-slate-900 px-3 py-1 text-sm text-white"
+            onClick={onCreateItem}
+          >
+            Add item
+          </button>
+        </div>
+      </div>
+      {error && <p className="text-sm text-red-600">{error}</p>}
+      {loading && <p className="text-sm text-slate-500">Loading menu…</p>}
+
+      <div className="space-y-3 rounded-lg border border-slate-200 p-4">
+        <h3 className="text-sm font-semibold text-slate-800">Categories</h3>
+        <div className="flex flex-wrap gap-2">
+          {categories.map((category) => (
+            <span
+              key={category.category_id}
+              className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600"
+            >
+              {category.name} ({category.type})
+            </span>
+          ))}
+          {categories.length === 0 && (
+            <span className="text-xs text-slate-400">
+              No categories yet. Add one below.
+            </span>
+          )}
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <input
+            type="text"
+            className="flex-1 rounded-md border border-slate-200 px-3 py-2 text-sm"
+            placeholder="New category name"
+            value={newCategoryName}
+            onChange={(event) => setNewCategoryName(event.target.value)}
+          />
+          <select
+            className="rounded-md border border-slate-200 px-3 py-2 text-sm"
+            value={newCategoryType}
+            onChange={(event) => setNewCategoryType(event.target.value)}
+          >
+            <option value="veg">Veg</option>
+            <option value="non-veg">Non-Veg</option>
+            <option value="snacks">Snacks</option>
+            <option value="special">Special</option>
+          </select>
+          <button
+            className="rounded-md bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground"
+            onClick={handleCreate}
+          >
+            Add category
+          </button>
+        </div>
+      </div>
+
+      <div className="space-y-3">
+        <h3 className="text-sm font-semibold text-slate-800">Menu items</h3>
+        <div className="max-h-64 overflow-y-auto divide-y divide-slate-100 border border-slate-200 rounded-lg">
+          {items.map((item) => (
+            <div
+              key={item.item_id}
+              className="flex items-center justify-between px-3 py-2 text-sm"
+            >
+              <div>
+                <p className="font-medium text-slate-800">{item.name}</p>
+                <p className="text-xs text-slate-500">{item.category_name}</p>
+              </div>
+              <div className="text-right text-sm text-slate-700">
+                ₹{item.price.toFixed(2)}
+                <p className="text-xs text-slate-400">
+                  {item.is_active ? 'Active' : 'Hidden'}
+                </p>
+              </div>
+            </div>
+          ))}
+          {items.length === 0 && (
+            <div className="px-3 py-6 text-center text-sm text-slate-400">
+              No items yet. Use “Add item” to seed your menu.
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default App;
