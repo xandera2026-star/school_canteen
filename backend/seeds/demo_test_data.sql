@@ -3,24 +3,23 @@
 
 BEGIN;
 
--- Canonical identifiers so this seed can be re-run or cleaned up easily.
-WITH constants AS (
-  SELECT
-    '00000000-0000-0000-0000-000000000001'::uuid AS owner_id,
-    '11111111-1111-1111-1111-111111111111'::uuid AS school_id,
-    '22222222-2222-2222-2222-222222222222'::uuid AS parent_id,
-    '33333333-3333-3333-3333-333333333333'::uuid AS student_a_id,
-    '33333333-3333-3333-3333-444444444444'::uuid AS student_b_id,
-    'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1'::uuid AS breakfast_cat_id,
-    'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa2'::uuid AS lunch_cat_id,
-    'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb1'::uuid AS idli_item_id,
-    'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb2'::uuid AS dosa_item_id,
-    'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb3'::uuid AS thali_item_id,
-    'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb4'::uuid AS wrap_item_id,
-    'cccccccc-cccc-cccc-cccc-ccccccccccc1'::uuid AS order_today_id,
-    'cccccccc-cccc-cccc-cccc-ccccccccccc2'::uuid AS order_tomorrow_id,
-    'dddddddd-dddd-dddd-dddd-ddddddddddd1'::uuid AS payment_id
-)
+CREATE TEMP TABLE seed_constants AS
+SELECT
+  '00000000-0000-0000-0000-000000000001'::uuid AS owner_id,
+  '11111111-1111-1111-1111-111111111111'::uuid AS school_id,
+  '22222222-2222-2222-2222-222222222222'::uuid AS parent_id,
+  '33333333-3333-3333-3333-333333333333'::uuid AS student_a_id,
+  '33333333-3333-3333-3333-444444444444'::uuid AS student_b_id,
+  'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1'::uuid AS breakfast_cat_id,
+  'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa2'::uuid AS lunch_cat_id,
+  'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb1'::uuid AS idli_item_id,
+  'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb2'::uuid AS dosa_item_id,
+  'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb3'::uuid AS thali_item_id,
+  'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb4'::uuid AS wrap_item_id,
+  'cccccccc-cccc-cccc-cccc-ccccccccccc1'::uuid AS order_today_id,
+  'cccccccc-cccc-cccc-cccc-ccccccccccc2'::uuid AS order_tomorrow_id,
+  'dddddddd-dddd-dddd-dddd-ddddddddddd1'::uuid AS payment_id;
+
 INSERT INTO schools (
   school_id, owner_id, school_code, name,
   address_line1, address_line2, city, state, postal_code, country, status,
@@ -42,7 +41,7 @@ SELECT
   NOW(),
   NULL,
   NULL
-FROM constants
+FROM seed_constants
 ON CONFLICT (school_id) DO UPDATE
 SET name = EXCLUDED.name,
     school_code = EXCLUDED.school_code,
@@ -67,7 +66,7 @@ SELECT
   NOW(),
   NULL,
   NULL
-FROM constants
+FROM seed_constants
 ON CONFLICT (school_id) DO UPDATE
 SET theme_primary = EXCLUDED.theme_primary,
     theme_accent = EXCLUDED.theme_accent,
@@ -90,7 +89,7 @@ SELECT
   NOW(),
   NULL,
   NULL
-FROM constants
+FROM seed_constants
 ON CONFLICT (parent_id) DO UPDATE
 SET name = EXCLUDED.name,
     mobile = EXCLUDED.mobile,
@@ -110,12 +109,12 @@ SELECT
   'A',
   NULL,
   TRUE,
-  ARRAY['nuts'],
+  ARRAY['nuts']::allergy_flag[],
   NOW(),
   NOW(),
   NULL,
   NULL
-FROM constants
+FROM seed_constants
 ON CONFLICT (student_id) DO UPDATE
 SET name = EXCLUDED.name,
     class_name = EXCLUDED.class_name,
@@ -136,12 +135,12 @@ SELECT
   'B',
   NULL,
   TRUE,
-  ARRAY['gluten'],
+  ARRAY['gluten']::allergy_flag[],
   NOW(),
   NOW(),
   NULL,
   NULL
-FROM constants
+FROM seed_constants
 ON CONFLICT (student_id) DO UPDATE
 SET name = EXCLUDED.name,
     class_name = EXCLUDED.class_name,
@@ -149,11 +148,11 @@ SET name = EXCLUDED.name,
     updated_at = NOW();
 
 INSERT INTO parent_children (parent_id, student_id, school_id, relationship)
-SELECT parent_id, student_a_id, school_id, 'mother' FROM constants
+SELECT parent_id, student_a_id, school_id, 'mother' FROM seed_constants
 ON CONFLICT (parent_id, student_id) DO NOTHING;
 
 INSERT INTO parent_children (parent_id, student_id, school_id, relationship)
-SELECT parent_id, student_b_id, school_id, 'mother' FROM constants
+SELECT parent_id, student_b_id, school_id, 'mother' FROM seed_constants
 ON CONFLICT (parent_id, student_id) DO NOTHING;
 
 INSERT INTO menu_categories (
@@ -170,7 +169,7 @@ SELECT
   NOW(),
   NULL,
   NULL
-FROM constants
+FROM seed_constants
 ON CONFLICT (category_id) DO UPDATE
 SET name = EXCLUDED.name,
     description = EXCLUDED.description,
@@ -190,7 +189,7 @@ SELECT
   NOW(),
   NULL,
   NULL
-FROM constants
+FROM seed_constants
 ON CONFLICT (category_id) DO UPDATE
 SET name = EXCLUDED.name,
     description = EXCLUDED.description,
@@ -210,7 +209,7 @@ SELECT
   45.00,
   'INR',
   jsonb_build_object('calories', 180, 'protein_g', 6),
-  ARRAY['nuts'],
+  ARRAY['nuts']::allergy_flag[],
   jsonb_build_object('days', ARRAY['Mon','Tue','Wed','Thu','Fri']),
   'https://cdn.example.com/menu/idli.png',
   TRUE,
@@ -218,7 +217,7 @@ SELECT
   NOW(),
   NULL,
   NULL
-FROM constants
+FROM seed_constants
 ON CONFLICT (item_id) DO UPDATE
 SET name = EXCLUDED.name,
     price = EXCLUDED.price,
@@ -238,7 +237,7 @@ SELECT
   65.00,
   'INR',
   jsonb_build_object('calories', 250, 'protein_g', 7),
-  ARRAY['gluten'],
+  ARRAY['gluten']::allergy_flag[],
   jsonb_build_object('days', ARRAY['Mon','Wed','Fri']),
   'https://cdn.example.com/menu/dosa.png',
   TRUE,
@@ -246,7 +245,7 @@ SELECT
   NOW(),
   NULL,
   NULL
-FROM constants
+FROM seed_constants
 ON CONFLICT (item_id) DO UPDATE
 SET name = EXCLUDED.name,
     price = EXCLUDED.price,
@@ -266,7 +265,7 @@ SELECT
   120.00,
   'INR',
   jsonb_build_object('calories', 420, 'protein_g', 12),
-  ARRAY['gluten'],
+  ARRAY['gluten']::allergy_flag[],
   jsonb_build_object('days', ARRAY['Mon','Tue','Wed','Thu','Fri']),
   'https://cdn.example.com/menu/thali.png',
   TRUE,
@@ -274,7 +273,7 @@ SELECT
   NOW(),
   NULL,
   NULL
-FROM constants
+FROM seed_constants
 ON CONFLICT (item_id) DO UPDATE
 SET name = EXCLUDED.name,
     price = EXCLUDED.price,
@@ -294,7 +293,7 @@ SELECT
   90.00,
   'INR',
   jsonb_build_object('calories', 350, 'protein_g', 14),
-  ARRAY['gluten','lactose'],
+  ARRAY['gluten','lactose']::allergy_flag[],
   jsonb_build_object('days', ARRAY['Tue','Thu']),
   'https://cdn.example.com/menu/wrap.png',
   TRUE,
@@ -302,7 +301,7 @@ SELECT
   NOW(),
   NULL,
   NULL
-FROM constants
+FROM seed_constants
 ON CONFLICT (item_id) DO UPDATE
 SET name = EXCLUDED.name,
     price = EXCLUDED.price,
@@ -330,7 +329,7 @@ INSERT INTO orders (
   NOW(),
   NULL,
   NULL
-FROM constants
+FROM seed_constants
 ON CONFLICT (order_id) DO UPDATE
 SET status = EXCLUDED.status,
     payment_status = EXCLUDED.payment_status,
@@ -359,7 +358,7 @@ INSERT INTO orders (
   NOW(),
   NULL,
   NULL
-FROM constants
+FROM seed_constants
 ON CONFLICT (order_id) DO UPDATE
 SET status = EXCLUDED.status,
     payment_status = EXCLUDED.payment_status,
@@ -370,7 +369,7 @@ SET status = EXCLUDED.status,
 INSERT INTO order_items (
   order_item_id, order_id, school_id, menu_item_id,
   name_snapshot, unit_price, quantity, preferences,
-  created_at, updated_at, created_by, updated_by
+  created_at, updated_at
 ) SELECT
   gen_random_uuid(),
   order_today_id,
@@ -381,16 +380,14 @@ INSERT INTO order_items (
   2,
   ARRAY['extra chutney'],
   NOW(),
-  NOW(),
-  NULL,
-  NULL
-FROM constants
+  NOW()
+FROM seed_constants
 ON CONFLICT DO NOTHING;
 
 INSERT INTO order_items (
   order_item_id, order_id, school_id, menu_item_id,
   name_snapshot, unit_price, quantity, preferences,
-  created_at, updated_at, created_by, updated_by
+  created_at, updated_at
 ) SELECT
   gen_random_uuid(),
   order_today_id,
@@ -401,16 +398,14 @@ INSERT INTO order_items (
   1,
   ARRAY[]::text[],
   NOW(),
-  NOW(),
-  NULL,
-  NULL
-FROM constants
+  NOW()
+FROM seed_constants
 ON CONFLICT DO NOTHING;
 
 INSERT INTO order_items (
   order_item_id, order_id, school_id, menu_item_id,
   name_snapshot, unit_price, quantity, preferences,
-  created_at, updated_at, created_by, updated_by
+  created_at, updated_at
 ) SELECT
   gen_random_uuid(),
   order_tomorrow_id,
@@ -421,16 +416,14 @@ INSERT INTO order_items (
   1,
   ARRAY['less oil'],
   NOW(),
-  NOW(),
-  NULL,
-  NULL
-FROM constants
+  NOW()
+FROM seed_constants
 ON CONFLICT DO NOTHING;
 
 INSERT INTO order_items (
   order_item_id, order_id, school_id, menu_item_id,
   name_snapshot, unit_price, quantity, preferences,
-  created_at, updated_at, created_by, updated_by
+  created_at, updated_at
 ) SELECT
   gen_random_uuid(),
   order_tomorrow_id,
@@ -441,10 +434,8 @@ INSERT INTO order_items (
   1,
   ARRAY[]::text[],
   NOW(),
-  NOW(),
-  NULL,
-  NULL
-FROM constants
+  NOW()
+FROM seed_constants
 ON CONFLICT DO NOTHING;
 
 INSERT INTO payments (
@@ -464,12 +455,14 @@ INSERT INTO payments (
   NOW(),
   NULL,
   NULL
-FROM constants
+FROM seed_constants
 ON CONFLICT (payment_id) DO UPDATE
 SET status = EXCLUDED.status,
     amount = EXCLUDED.amount,
     transaction_ref = EXCLUDED.transaction_ref,
     paid_at = EXCLUDED.paid_at,
     updated_at = NOW();
+
+DROP TABLE IF EXISTS seed_constants;
 
 COMMIT;
