@@ -57,6 +57,20 @@ $ npm run test:e2e
 $ npm run test:cov
 ```
 
+## Demo seed data
+
+Use the provided SQL files to load or remove realistic parent/admin test data:
+
+```bash
+# seed canonical data for school code TEST01
+psql "$DATABASE_URL" -f backend/seeds/demo_test_data.sql
+
+# remove everything inserted by the seed
+psql "$DATABASE_URL" -f backend/seeds/demo_cleanup.sql
+```
+
+The seed inserts the `TEST01` school, a parent (`9876000001`), two students, active menu categories/items, and two orders (one paid for today, one pending tomorrow) so both the parent apps and admin dashboard have meaningful records to render.
+
 ## Deployment
 
 When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
