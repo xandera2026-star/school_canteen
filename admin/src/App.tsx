@@ -11,7 +11,6 @@ import type {
 } from './types';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '';
-const DEMO_SCHOOL_ID = import.meta.env.VITE_DEMO_SCHOOL_ID ?? '';
 const DEMO_SCHOOL_CODE = import.meta.env.VITE_DEMO_SCHOOL_CODE ?? '';
 
 type Announcement = {
@@ -30,7 +29,6 @@ function App() {
   const [schoolCode, setSchoolCode] = useState(
     DEMO_SCHOOL_CODE ? DEMO_SCHOOL_CODE.toUpperCase() : '',
   );
-  const [schoolId, setSchoolId] = useState(DEMO_SCHOOL_ID ?? '');
   const [mobile, setMobile] = useState('');
   const [otp, setOtp] = useState('');
   const [step, setStep] = useState<'enter' | 'verify'>('enter');
@@ -57,9 +55,9 @@ function App() {
   const [cutoffTimezone, setCutoffTimezone] = useState('Asia/Kolkata');
 
   const announcementStorageKey = useMemo(() => {
-    const key = schoolCode || schoolId;
+    const key = schoolCode.trim();
     return key ? `xandera.announcements.${key}` : 'xandera.announcements';
-  }, [schoolCode, schoolId]);
+  }, [schoolCode]);
 
   useEffect(() => {
     const stored = localStorage.getItem(announcementStorageKey);
@@ -79,14 +77,9 @@ function App() {
   }, [announcementStorageKey, announcements]);
 
   const identifier = useMemo(() => {
-    if (schoolCode.trim()) {
-      return { school_code: schoolCode.trim().toUpperCase() };
-    }
-    if (schoolId.trim()) {
-      return { school_id: schoolId.trim() };
-    }
-    return null;
-  }, [schoolCode, schoolId]);
+    const code = schoolCode.trim().toUpperCase();
+    return code ? { school_code: code } : null;
+  }, [schoolCode]);
 
   const buildHeaders = useMemo(
     () => ({
@@ -99,7 +92,7 @@ function App() {
     setError('');
     setStatus('');
     if (!identifier || mobile.trim().length !== 10) {
-      setError('Enter a 10-digit mobile number and school code (or UUID).');
+      setError('Enter a 10-digit mobile number and school code.');
       return;
     }
     if (!API_BASE_URL) {
@@ -139,7 +132,7 @@ function App() {
       return;
     }
     if (!identifier) {
-      setError('Provide the school code (or UUID) used for login.');
+      setError('Provide the school code used for login.');
       return;
     }
     if (!API_BASE_URL) {
@@ -193,19 +186,17 @@ function App() {
 
   const handleSwitchSchool = () => {
     const value = window.prompt(
-      'Enter the next school code (like SVS1) or UUID:',
-      schoolCode || schoolId,
+      'Enter the next school code (like SVS1):',
+      schoolCode,
     );
     if (!value) {
       return;
     }
-    if (value.length <= 8) {
-      setSchoolCode(value.toUpperCase());
-      setSchoolId('');
-    } else {
-      setSchoolId(value);
-      setSchoolCode('');
+    const nextCode = value.trim().toUpperCase();
+    if (!nextCode) {
+      return;
     }
+    setSchoolCode(nextCode);
     handleLogout();
   };
 
@@ -469,21 +460,6 @@ function App() {
                   setSchoolCode(event.target.value.toUpperCase())
                 }
                 placeholder="e.g. SVS1"
-              />
-              <p className="mt-1 text-xs text-slate-400">
-                Each school gets a short code from XAndera Ops. Enter it here.
-              </p>
-            </div>
-            <div>
-              <label className="text-sm font-medium text-slate-700">
-                School UUID (optional)
-              </label>
-              <input
-                className="mt-1 w-full rounded-lg border border-slate-200 px-4 py-2 focus:border-primary focus:outline-none"
-                type="text"
-                value={schoolId}
-                onChange={(event) => setSchoolId(event.target.value)}
-                placeholder="Use only if you have the raw UUID"
               />
             </div>
           </div>
