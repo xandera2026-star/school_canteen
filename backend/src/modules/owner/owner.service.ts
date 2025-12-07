@@ -9,7 +9,7 @@ export class OwnerService {
       data: [
         {
           school_id: 'school-1',
-          name: 'Saraswathi Vidyalaya Secondary School',
+          name: 'SVMHSS FOOD COURT',
           address: 'Pallavaram Road, Kolapakkam, Chennai',
           status: 'trial',
           subscription: {

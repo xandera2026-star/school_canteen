@@ -21,8 +21,7 @@ const API_BASE_URLS = [API_BASE_URL, FALLBACK_API_BASE_URL].filter(
 const DEMO_SCHOOL_CODE = import.meta.env.VITE_DEMO_SCHOOL_CODE ?? '';
 const PORTAL_TAGLINE = import.meta.env.VITE_PORTAL_TAGLINE?.trim() ?? '';
 const SCHOOL_NAME =
-  import.meta.env.VITE_DEFAULT_SCHOOL_NAME?.trim() ||
-  'Saraswathi Vidyalaya Secondary School';
+  import.meta.env.VITE_DEFAULT_SCHOOL_NAME?.trim() || 'SVMHSS FOOD COURT';
 
 interface CartLine {
   menu_item_id: string;

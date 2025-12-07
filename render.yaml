@@ -46,7 +46,7 @@ services:
       - key: VITE_DEMO_SCHOOL_CODE
         value: SVS1
       - key: VITE_DEFAULT_SCHOOL_NAME
-        value: Saraswathi Vidyalaya Secondary School
+        value: SVMHSS FOOD COURT
       - key: VITE_PORTAL_TAGLINE
         value: ''
 
