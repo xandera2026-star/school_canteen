@@ -9,6 +9,7 @@ import { MenuCategoryInputDto } from './dto/menu-category-input.dto';
 import { MenuItemInputDto } from './dto/menu-item-input.dto';
 import { ThemeSettingsDto } from './dto/theme-settings.dto';
 import { CutoffSettingsDto } from './dto/cutoff-settings.dto';
+import { OrderQueryDto } from './dto/order-query.dto';
 import {
   MenuCategoryEntity,
   MenuItemEntity,
@@ -460,6 +461,44 @@ export class AdminService {
         missing_students: missingStudents,
         school_name: school?.name,
       },
+    };
+  }
+
+  async listOrders(query: OrderQueryDto, user: UserPayload) {
+    const schoolId = user.schoolId;
+    if (!schoolId) {
+      throw new BadRequestException('school context missing');
+    }
+    const serviceDate = query.date ?? new Date().toISOString().slice(0, 10);
+
+    const orders = await this.orderRepository.find({
+      where: { schoolId, serviceDate },
+      relations: { items: true, student: true, parent: true },
+      order: { createdAt: 'DESC' },
+    });
+
+    return {
+      data: orders.map((order) => ({
+        order_id: order.id,
+        student_id: order.studentId,
+        student_name: order.student?.name,
+        class: order.student?.className,
+        section: order.student?.section,
+        parent_id: order.parentId,
+        parent_name: order.parent?.name,
+        parent_mobile: order.parent?.mobile,
+        status: order.status,
+        payment_status: order.paymentStatus,
+        service_date: order.serviceDate,
+        total_amount: Number(order.totalAmount),
+        currency: order.currency,
+        items:
+          order.items?.map((item) => ({
+            menu_item_id: item.menuItemId,
+            name: item.nameSnapshot,
+            quantity: item.quantity,
+          })) ?? [],
+      })),
     };
   }
 

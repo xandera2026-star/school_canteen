@@ -47,6 +47,29 @@ export interface ListResponse<T> {
   data: T;
 }
 
+export interface AdminOrderLine {
+  menu_item_id: string;
+  name: string;
+  quantity: number;
+}
+
+export interface AdminOrder {
+  order_id: string;
+  student_id: string;
+  student_name?: string;
+  class?: string;
+  section?: string;
+  parent_id: string;
+  parent_name?: string;
+  parent_mobile?: string;
+  status: string;
+  payment_status: string;
+  service_date: string;
+  total_amount: number;
+  currency: string;
+  items: AdminOrderLine[];
+}
+
 export interface ImportStats {
   import_id: string;
   processed: number;

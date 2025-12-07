@@ -16,6 +16,7 @@ import { MenuCategoryInputDto } from './dto/menu-category-input.dto';
 import { MenuItemInputDto } from './dto/menu-item-input.dto';
 import { ThemeSettingsDto } from './dto/theme-settings.dto';
 import { CutoffSettingsDto } from './dto/cutoff-settings.dto';
+import { OrderQueryDto } from './dto/order-query.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { UserPayload } from '../auth/interfaces/user-payload.interface';
@@ -105,5 +106,10 @@ export class AdminController {
     @CurrentUser() user: UserPayload,
   ) {
     return this.adminService.dashboard(date, user);
+  }
+
+  @Get('orders')
+  listOrders(@Query() query: OrderQueryDto, @CurrentUser() user: UserPayload) {
+    return this.adminService.listOrders(query, user);
   }
 }

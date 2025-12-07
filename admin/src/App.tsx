@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { ChangeEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import './index.css';
 import { apiRequest } from './lib/api';
 import type {
@@ -8,6 +8,7 @@ import type {
   MenuItem,
   ImportStats,
   ListResponse,
+  AdminOrder,
 } from './types';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '';
@@ -53,6 +54,12 @@ function App() {
   const [themeLogoUrl, setThemeLogoUrl] = useState('');
   const [cutoffTime, setCutoffTime] = useState('09:00');
   const [cutoffTimezone, setCutoffTimezone] = useState('Asia/Kolkata');
+  const [orders, setOrders] = useState<AdminOrder[]>([]);
+  const [ordersDate, setOrdersDate] = useState(
+    new Date().toISOString().slice(0, 10),
+  );
+  const [loadingOrders, setLoadingOrders] = useState(false);
+  const [ordersError, setOrdersError] = useState('');
 
   const announcementStorageKey = useMemo(() => {
     const key = schoolCode.trim();
@@ -200,6 +207,14 @@ function App() {
     handleLogout();
   };
 
+  const handleOrdersDateChange = (event: ChangeEvent<HTMLInputElement>) => {
+    setOrdersDate(event.target.value);
+  };
+
+  const handleRefreshOrders = () => {
+    void fetchOrdersList();
+  };
+
   const authorizedRequest = useCallback(
     async <T,>(path: string) => {
       if (!API_BASE_URL) {
@@ -211,6 +226,17 @@ function App() {
     },
     [authToken],
   );
+
+  const formatCurrency = useCallback((value: number, currency = 'INR') => {
+    if (Number.isNaN(value)) {
+      return '--';
+    }
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: currency || 'INR',
+      maximumFractionDigits: 2,
+    }).format(value ?? 0);
+  }, []);
 
   const fetchDashboard = useCallback(async () => {
     try {
@@ -243,12 +269,32 @@ function App() {
     }
   }, [authorizedRequest]);
 
+  const fetchOrdersList = useCallback(async () => {
+    if (!ordersDate) {
+      return;
+    }
+    try {
+      setLoadingOrders(true);
+      setOrdersError('');
+      const response = await authorizedRequest<ListResponse<AdminOrder[]>>(
+        `/admin/orders?date=${ordersDate}`,
+      );
+      setOrders(response.data);
+    } catch (err) {
+      setOrders([]);
+      setOrdersError((err as Error).message);
+    } finally {
+      setLoadingOrders(false);
+    }
+  }, [authorizedRequest, ordersDate]);
+
   useEffect(() => {
     if (authToken) {
       void fetchDashboard();
       void fetchMenuData();
+      void fetchOrdersList();
     }
-  }, [authToken, fetchDashboard, fetchMenuData]);
+  }, [authToken, fetchDashboard, fetchMenuData, fetchOrdersList]);
 
   const handleStudentImport = async (file: File | null) => {
     if (!file) {
@@ -638,6 +684,124 @@ function App() {
             >
               Publish new announcement
             </button>
+          </div>
+        </section>
+
+        <section className="rounded-lg bg-white p-6 shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <h2 className="text-lg font-semibold text-slate-900">
+                Orders detail
+              </h2>
+              <p className="text-sm text-slate-500">
+                {ordersDate
+                  ? new Date(ordersDate).toLocaleDateString()
+                  : 'Select a date'}
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
+              <input
+                type="date"
+                className="rounded-md border border-slate-200 px-3 py-2 text-sm"
+                value={ordersDate}
+                onChange={handleOrdersDateChange}
+                max={new Date().toISOString().slice(0, 10)}
+              />
+              <button
+                type="button"
+                onClick={handleRefreshOrders}
+                disabled={loadingOrders}
+                className="rounded-md border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 disabled:opacity-60"
+              >
+                {loadingOrders ? 'Loading…' : 'Refresh'}
+              </button>
+            </div>
+          </div>
+          {ordersError && (
+            <p className="mt-3 text-sm text-red-600">{ordersError}</p>
+          )}
+          <div className="mt-4 overflow-x-auto">
+            {loadingOrders ? (
+              <p className="text-sm text-slate-500">Loading orders…</p>
+            ) : orders.length === 0 ? (
+              <p className="rounded-md border border-dashed border-slate-200 p-4 text-sm text-slate-500">
+                No orders recorded for this date.
+              </p>
+            ) : (
+              <table className="min-w-full text-left text-sm text-slate-700">
+                <thead>
+                  <tr className="text-xs uppercase text-slate-500">
+                    <th className="py-2 pr-4 font-medium">Student</th>
+                    <th className="py-2 pr-4 font-medium">Items</th>
+                    <th className="py-2 pr-4 font-medium">Amount</th>
+                    <th className="py-2 pr-4 font-medium">Payment</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {orders.map((order) => (
+                    <tr
+                      key={order.order_id}
+                      className="border-t border-slate-100 align-top"
+                    >
+                      <td className="py-3 pr-4">
+                        <div className="font-medium text-slate-900">
+                          {order.student_name ?? 'Unknown student'}
+                        </div>
+                        <div className="text-xs text-slate-500">
+                          Class {order.class ?? '—'}
+                          {order.section ? ` • Section ${order.section}` : ''}
+                        </div>
+                        <div className="text-xs text-slate-400">
+                          Parent:{' '}
+                          {order.parent_name ?? '—'}
+                          {order.parent_mobile
+                            ? ` (${order.parent_mobile})`
+                            : ''}
+                        </div>
+                      </td>
+                      <td className="py-3 pr-4">
+                        <ul className="space-y-1 text-xs">
+                          {order.items.length === 0 && (
+                            <li className="text-slate-400">No items</li>
+                          )}
+                          {order.items.map((item) => (
+                            <li key={`${order.order_id}-${item.menu_item_id}`}>
+                              <span className="font-medium text-slate-900">
+                                {item.name}
+                              </span>{' '}
+                              <span className="text-slate-500">
+                                × {item.quantity}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      </td>
+                      <td className="py-3 pr-4 align-top">
+                        <div className="font-medium text-slate-900">
+                          {formatCurrency(order.total_amount, order.currency)}
+                        </div>
+                        <div className="text-xs text-slate-500">
+                          {order.status}
+                        </div>
+                      </td>
+                      <td className="py-3 pr-4 align-top">
+                        <span
+                          className={`rounded-full px-2 py-1 text-xs font-medium ${
+                            order.payment_status === 'paid'
+                              ? 'bg-green-100 text-green-700'
+                              : order.payment_status === 'failed'
+                              ? 'bg-red-100 text-red-700'
+                              : 'bg-slate-100 text-slate-600'
+                          }`}
+                        >
+                          {order.payment_status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
         </section>
 
