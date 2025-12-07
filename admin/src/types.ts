@@ -18,6 +18,7 @@ export interface DashboardResponse {
     cash_total: number;
     top_items: DashboardTopItem[];
     missing_students: DashboardMissingStudent[];
+    school_name?: string;
   };
 }
 

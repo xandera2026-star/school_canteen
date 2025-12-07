@@ -15,6 +15,7 @@ import {
   ParentChildEntity,
   ParentEntity,
   PaymentEntity,
+  SchoolEntity,
   SchoolSettingsEntity,
   StudentEntity,
 } from '../../database/entities';
@@ -62,6 +63,8 @@ export class AdminService {
     private readonly parentRepository: Repository<ParentEntity>,
     @InjectRepository(ParentChildEntity)
     private readonly parentChildRepository: Repository<ParentChildEntity>,
+    @InjectRepository(SchoolEntity)
+    private readonly schoolRepository: Repository<SchoolEntity>,
   ) {}
 
   async importStudents(file: unknown, user: UserPayload) {
@@ -295,6 +298,7 @@ export class AdminService {
       topItemsRaw,
       orderedStudentsRaw,
       students,
+      school,
     ] = await Promise.all([
       this.orderRepository.count({ where: { schoolId, serviceDate } }),
       this.paymentRepository
@@ -325,6 +329,7 @@ export class AdminService {
         .andWhere('order.service_date = :serviceDate', { serviceDate })
         .getRawMany<{ student_id: string }>(),
       this.studentRepository.find({ where: { schoolId, isActive: true } }),
+      this.schoolRepository.findOne({ where: { id: schoolId } }),
     ]);
 
     const orderedStudentIds = orderedStudentsRaw.map((raw) => raw.student_id);
@@ -358,6 +363,7 @@ export class AdminService {
           count: Number(item.count),
         })),
         missing_students: missingStudents,
+        school_name: school?.name,
       },
     };
   }
