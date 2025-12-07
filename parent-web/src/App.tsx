@@ -48,6 +48,11 @@ function App() {
   const [loadingStudents, setLoadingStudents] = useState(false);
   const [loadingOrders, setLoadingOrders] = useState(false);
 
+  const trimmedSchoolCode = schoolCode.trim();
+  const loginTitle = trimmedSchoolCode
+    ? `${trimmedSchoolCode} Parents Sign-In`
+    : 'Parents Sign-In';
+
   const identifier = useMemo(() => {
     if (schoolCode.trim()) {
       return { school_code: schoolCode.trim().toUpperCase() };
@@ -276,7 +281,7 @@ function App() {
     return (
       <div className="auth-shell">
         <div className="auth-card">
-          <h1>Parent Sign-In</h1>
+          <h1>{loginTitle}</h1>
           <p className="muted">
             Enter your school code and registered mobile number. Use OTP{' '}
             <strong>000000</strong> on demo environments.

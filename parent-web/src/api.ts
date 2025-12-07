@@ -22,19 +22,29 @@ export async function apiRequest<T>(
     finalHeaders['Content-Type'] = 'application/json';
   }
 
-  const response = await fetch(url, {
-    method,
-    headers: finalHeaders,
-    body,
-  });
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      method,
+      headers: finalHeaders,
+      body,
+    });
+  } catch (err) {
+    throw new Error(
+      'Unable to reach the server. Check your connection or try again shortly.',
+    );
+  }
 
   if (!response.ok) {
     let message = response.statusText;
     try {
       const errorData = await response.json();
       message = errorData?.message ?? message;
-    } catch (err) {
-      // ignore parse errors
+    } catch {
+      const text = await response.text().catch(() => '');
+      if (text) {
+        message = text;
+      }
     }
     throw new Error(message || 'Request failed');
   }
