@@ -3,7 +3,7 @@ import { MenuCategoryInputDto } from './dto/menu-category-input.dto';
 import { MenuItemInputDto } from './dto/menu-item-input.dto';
 import { ThemeSettingsDto } from './dto/theme-settings.dto';
 import { CutoffSettingsDto } from './dto/cutoff-settings.dto';
-import { MenuCategoryEntity, MenuItemEntity, OrderEntity, OrderItemEntity, ParentChildEntity, ParentEntity, PaymentEntity, SchoolSettingsEntity, StudentEntity } from '../../database/entities';
+import { MenuCategoryEntity, MenuItemEntity, OrderEntity, OrderItemEntity, ParentChildEntity, ParentEntity, PaymentEntity, SchoolEntity, SchoolSettingsEntity, StudentEntity } from '../../database/entities';
 import { UserPayload } from '../auth/interfaces/user-payload.interface';
 import { AllergyFlag } from '../../database/enums';
 export declare class AdminService {
@@ -17,7 +17,8 @@ export declare class AdminService {
     private readonly studentRepository;
     private readonly parentRepository;
     private readonly parentChildRepository;
-    constructor(dataSource: DataSource, categoryRepository: Repository<MenuCategoryEntity>, menuItemRepository: Repository<MenuItemEntity>, orderRepository: Repository<OrderEntity>, orderItemRepository: Repository<OrderItemEntity>, paymentRepository: Repository<PaymentEntity>, settingsRepository: Repository<SchoolSettingsEntity>, studentRepository: Repository<StudentEntity>, parentRepository: Repository<ParentEntity>, parentChildRepository: Repository<ParentChildEntity>);
+    private readonly schoolRepository;
+    constructor(dataSource: DataSource, categoryRepository: Repository<MenuCategoryEntity>, menuItemRepository: Repository<MenuItemEntity>, orderRepository: Repository<OrderEntity>, orderItemRepository: Repository<OrderItemEntity>, paymentRepository: Repository<PaymentEntity>, settingsRepository: Repository<SchoolSettingsEntity>, studentRepository: Repository<StudentEntity>, parentRepository: Repository<ParentEntity>, parentChildRepository: Repository<ParentChildEntity>, schoolRepository: Repository<SchoolEntity>);
     importStudents(file: unknown, user: UserPayload): Promise<{
         data: {
             import_id: `${string}-${string}-${string}-${string}-${string}`;
@@ -85,6 +86,7 @@ export declare class AdminService {
                 class: string | undefined;
                 section: string | undefined;
             }[];
+            school_name: string | undefined;
         };
     }>;
     private parseCsv;

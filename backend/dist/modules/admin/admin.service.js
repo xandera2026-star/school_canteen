@@ -32,7 +32,8 @@ let AdminService = class AdminService {
     studentRepository;
     parentRepository;
     parentChildRepository;
-    constructor(dataSource, categoryRepository, menuItemRepository, orderRepository, orderItemRepository, paymentRepository, settingsRepository, studentRepository, parentRepository, parentChildRepository) {
+    schoolRepository;
+    constructor(dataSource, categoryRepository, menuItemRepository, orderRepository, orderItemRepository, paymentRepository, settingsRepository, studentRepository, parentRepository, parentChildRepository, schoolRepository) {
         this.dataSource = dataSource;
         this.categoryRepository = categoryRepository;
         this.menuItemRepository = menuItemRepository;
@@ -43,6 +44,7 @@ let AdminService = class AdminService {
         this.studentRepository = studentRepository;
         this.parentRepository = parentRepository;
         this.parentChildRepository = parentChildRepository;
+        this.schoolRepository = schoolRepository;
     }
     async importStudents(file, user) {
         if (!user.schoolId) {
@@ -250,7 +252,7 @@ let AdminService = class AdminService {
         if (!schoolId) {
             throw new common_1.BadRequestException('school context missing');
         }
-        const [ordersToday, paymentAggregates, topItemsRaw, orderedStudentsRaw, students,] = await Promise.all([
+        const [ordersToday, paymentAggregates, topItemsRaw, orderedStudentsRaw, students, school,] = await Promise.all([
             this.orderRepository.count({ where: { schoolId, serviceDate } }),
             this.paymentRepository
                 .createQueryBuilder('payment')
@@ -280,6 +282,7 @@ let AdminService = class AdminService {
                 .andWhere('order.service_date = :serviceDate', { serviceDate })
                 .getRawMany(),
             this.studentRepository.find({ where: { schoolId, isActive: true } }),
+            this.schoolRepository.findOne({ where: { id: schoolId } }),
         ]);
         const orderedStudentIds = orderedStudentsRaw.map((raw) => raw.student_id);
         const missingStudents = students
@@ -307,6 +310,7 @@ let AdminService = class AdminService {
                     count: Number(item.count),
                 })),
                 missing_students: missingStudents,
+                school_name: school?.name,
             },
         };
     }
@@ -370,7 +374,9 @@ exports.AdminService = AdminService = __decorate([
     __param(7, (0, typeorm_1.InjectRepository)(entities_1.StudentEntity)),
     __param(8, (0, typeorm_1.InjectRepository)(entities_1.ParentEntity)),
     __param(9, (0, typeorm_1.InjectRepository)(entities_1.ParentChildEntity)),
+    __param(10, (0, typeorm_1.InjectRepository)(entities_1.SchoolEntity)),
     __metadata("design:paramtypes", [typeorm_2.DataSource,
+        typeorm_2.Repository,
         typeorm_2.Repository,
         typeorm_2.Repository,
         typeorm_2.Repository,

@@ -74,6 +74,7 @@ export declare class AdminController {
                 class: string | undefined;
                 section: string | undefined;
             }[];
+            school_name: string | undefined;
         };
     }>;
 }
