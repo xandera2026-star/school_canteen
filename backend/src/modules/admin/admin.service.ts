@@ -68,15 +68,18 @@ const STUDENT_TEMPLATE_CSV = (() => {
 const CSV_HEADER =
   'student_name,roll_number,class,section,parent_name,parent_mobile,parent_email,allergy_info,is_active';
 
+const PRINTABLE_SCALAR_TYPES = new Set(['string', 'number', 'boolean', 'bigint']);
+const isPrintableScalar = (
+  value: unknown,
+): value is string | number | boolean | bigint => {
+  return PRINTABLE_SCALAR_TYPES.has(typeof value);
+};
+
 const csvEscape = (value: unknown): string => {
   if (value === undefined || value === null) {
     return '';
   }
-  if (
-    typeof value === 'object' ||
-    typeof value === 'function' ||
-    typeof value === 'symbol'
-  ) {
+  if (!isPrintableScalar(value)) {
     return '';
   }
   const normalized = String(value);
