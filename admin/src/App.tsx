@@ -21,14 +21,7 @@ type Announcement = {
   createdAt: string;
 };
 
-const defaultAnnouncements: Announcement[] = [
-  {
-    id: 'welcome',
-    title: 'Welcome to XAndera Admin',
-    body: 'Use this workspace to manage students, menus, and cut-off settings.',
-    createdAt: new Date().toISOString(),
-  },
-];
+const defaultAnnouncements: Announcement[] = [];
 
 function App() {
   const [authToken, setAuthToken] = useState<string | null>(() =>
@@ -508,17 +501,15 @@ function App() {
   };
 
   const studentsPendingCount = dashboard?.missing_students.length ?? 0;
+  const schoolDisplayName = dashboard?.school_name?.trim() ?? '';
 
   const renderDashboard = () => (
     <div className="min-h-screen bg-slate-50">
       <header className="bg-white shadow-sm">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-6 py-4">
           <div>
-            <p className="text-xs uppercase tracking-widest text-slate-500">
-              XAndera Admin Portal
-            </p>
             <h1 className="text-2xl font-semibold text-slate-900">
-              {schoolCode || 'Your School'}
+              {schoolDisplayName || schoolCode || 'Your School'}
             </h1>
           </div>
           <div className="flex flex-wrap items-center gap-3">
