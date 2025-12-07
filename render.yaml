@@ -27,9 +27,26 @@ services:
     staticPublishPath: dist
     envVars:
       - key: VITE_API_BASE_URL
-        value: https://api.xandera-canteen.com/v1
+        value: https://xandera-backend.onrender.com/v1
+      - key: VITE_FALLBACK_API_BASE_URL
+        value: https://xandera-backend.onrender.com/v1
       - key: VITE_FIREBASE_CONFIG
         sync: false
+  - type: web
+    name: xandera-parent
+    env: static
+    rootDir: parent-web
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: VITE_API_BASE_URL
+        value: https://xandera-backend.onrender.com/v1
+      - key: VITE_FALLBACK_API_BASE_URL
+        value: https://xandera-backend.onrender.com/v1
+      - key: VITE_DEMO_SCHOOL_CODE
+        value: SVS1
+      - key: VITE_DEFAULT_SCHOOL_NAME
+        value: Saraswathi Vidyalaya
 
 databases:
   - name: xandera-postgres

@@ -11,7 +11,13 @@ import type {
   Student,
 } from './types';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL?.trim() ?? '';
+const FALLBACK_API_BASE_URL =
+  import.meta.env.VITE_FALLBACK_API_BASE_URL?.trim() ??
+  'https://xandera-backend.onrender.com/v1';
+const API_BASE_URLS = [API_BASE_URL, FALLBACK_API_BASE_URL].filter(
+  (value, index, array) => value && array.indexOf(value) === index,
+);
 const DEMO_SCHOOL_CODE = import.meta.env.VITE_DEMO_SCHOOL_CODE ?? '';
 const SCHOOL_NAME = import.meta.env.VITE_DEFAULT_SCHOOL_NAME ?? '';
 
@@ -73,9 +79,9 @@ function App() {
   }, [tokens, selectedStudentId, serviceDate]);
 
   const authorizedFetch = async <T,>(path: string) => {
-    if (!API_BASE_URL) throw new Error('API base URL missing');
+    if (API_BASE_URLS.length === 0) throw new Error('API base URL missing');
     if (!tokens) throw new Error('Not authenticated');
-    return apiRequest<T>(API_BASE_URL, path, {
+    return apiRequest<T>(API_BASE_URLS, path, {
       token: tokens.access_token,
     });
   };
@@ -87,13 +93,13 @@ function App() {
       setError('Enter a 10-digit mobile number.');
       return;
     }
-    if (!API_BASE_URL) {
+    if (API_BASE_URLS.length === 0) {
       setError('API base URL missing.');
       return;
     }
     try {
       setIsSubmitting(true);
-      await apiRequest(API_BASE_URL, '/auth/login', {
+      await apiRequest(API_BASE_URLS, '/auth/login', {
         method: 'POST',
         body: JSON.stringify({
           mobile,
@@ -122,14 +128,14 @@ function App() {
       setError('Enter 6-digit OTP.');
       return;
     }
-    if (!API_BASE_URL) {
+    if (API_BASE_URLS.length === 0) {
       setError('API base URL missing.');
       return;
     }
     try {
       setIsSubmitting(true);
       const response = await apiRequest<AuthResponse>(
-        API_BASE_URL,
+        API_BASE_URLS,
         '/auth/verify-otp',
         {
           method: 'POST',
@@ -255,7 +261,7 @@ function App() {
       setError('');
       setStatus('Placing order…');
       const idempotency = crypto.randomUUID();
-      await apiRequest(API_BASE_URL, '/parent/orders', {
+      await apiRequest(API_BASE_URLS, '/parent/orders', {
         method: 'POST',
         body: JSON.stringify({
           student_id: selectedStudentId,
