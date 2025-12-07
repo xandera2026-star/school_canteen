@@ -292,6 +292,66 @@ function App() {
     }
   };
 
+  const downloadCsv = useCallback(
+    async (path: string, filename: string) => {
+      if (!authToken) {
+        setError('You must be signed in to download files.');
+        return;
+      }
+      try {
+        const base = (API_BASE_URL ?? '').replace(/\/$/, '');
+        const url = `${base}${path}` || path;
+        const response = await fetch(url, {
+          headers: {
+            Authorization: `Bearer ${authToken}`,
+          },
+        });
+        if (!response.ok) {
+          let message = response.statusText || 'Unable to download file.';
+          try {
+            const errorBody = await response.json();
+            message = errorBody?.message ?? message;
+          } catch {
+            const text = await response.text();
+            if (text) {
+              message = text;
+            }
+          }
+          throw new Error(message);
+        }
+        const blob = await response.blob();
+        const blobUrl = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(blobUrl);
+      } catch (err) {
+        setError((err as Error).message);
+      }
+    },
+    [authToken],
+  );
+
+  const studentsPendingCount = dashboard?.missing_students.length ?? 0;
+  const schoolDisplayName = dashboard?.school_name?.trim() ?? '';
+
+  const handleDownloadTemplate = useCallback(() => {
+    void downloadCsv('/admin/students/template', 'student_import_template.csv');
+  }, [downloadCsv]);
+
+  const handleExportStudents = useCallback(() => {
+    const baseName = schoolDisplayName || schoolCode || 'students';
+    const safeName =
+      baseName
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '') || 'students';
+    void downloadCsv('/admin/students/export', `${safeName}-roster.csv`);
+  }, [downloadCsv, schoolDisplayName, schoolCode]);
+
   const handleCreateCategory = async (payload: {
     name: string;
     type: string;
@@ -500,9 +560,6 @@ function App() {
     handleAddAnnouncement(title, body);
   };
 
-  const studentsPendingCount = dashboard?.missing_students.length ?? 0;
-  const schoolDisplayName = dashboard?.school_name?.trim() ?? '';
-
   const renderDashboard = () => (
     <div className="min-h-screen bg-slate-50">
       <header className="bg-white shadow-sm">
@@ -613,6 +670,8 @@ function App() {
             onImport={handleStudentImport}
             stats={importStats}
             pendingStudents={dashboard?.missing_students ?? []}
+            onDownloadTemplate={handleDownloadTemplate}
+            onExportStudents={handleExportStudents}
           />
           <MenuManager
             categories={categories}
@@ -670,23 +729,39 @@ type StudentImportProps = {
   onImport: (file: File | null) => Promise<void>;
   stats: ImportStats | null;
   pendingStudents: DashboardMissingStudent[];
+  onDownloadTemplate: () => void;
+  onExportStudents: () => void;
 };
 
-function StudentImportCard({ onImport, stats, pendingStudents }: StudentImportProps) {
+function StudentImportCard({
+  onImport,
+  stats,
+  pendingStudents,
+  onDownloadTemplate,
+  onExportStudents,
+}: StudentImportProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   return (
     <div className="rounded-lg bg-white p-6 shadow-sm space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-lg font-semibold text-slate-900">Students</h2>
-        <a
-          href="/docs/student_import_template.csv"
-          className="text-sm font-medium text-primary"
-          target="_blank"
-          rel="noreferrer"
-        >
-          Download template
-        </a>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            className="rounded-md border border-slate-200 px-3 py-1 text-sm font-medium text-slate-600"
+            onClick={onDownloadTemplate}
+          >
+            Download template
+          </button>
+          <button
+            type="button"
+            className="rounded-md bg-slate-900 px-3 py-1 text-sm font-medium text-white"
+            onClick={onExportStudents}
+          >
+            Export roster
+          </button>
+        </div>
       </div>
       <div className="rounded-lg border border-dashed border-slate-300 p-4 space-y-3">
         <p className="text-sm text-slate-600">

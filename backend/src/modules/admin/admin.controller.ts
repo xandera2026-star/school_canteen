@@ -5,6 +5,7 @@ import {
   Post,
   Put,
   Query,
+  Res,
   UploadedFile,
   UseGuards,
   UseInterceptors,
@@ -18,6 +19,7 @@ import { CutoffSettingsDto } from './dto/cutoff-settings.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { UserPayload } from '../auth/interfaces/user-payload.interface';
+import type { Response } from 'express';
 
 @UseGuards(JwtAuthGuard)
 @Controller({ path: 'admin', version: '1' })
@@ -31,6 +33,28 @@ export class AdminController {
     @CurrentUser() user: UserPayload,
   ) {
     return this.adminService.importStudents(file, user);
+  }
+
+  @Get('students/template')
+  downloadTemplate(@Res() res: Response) {
+    const csv = this.adminService.getStudentImportTemplate();
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader(
+      'Content-Disposition',
+      'attachment; filename="student_import_template.csv"',
+    );
+    res.send(csv);
+  }
+
+  @Get('students/export')
+  async exportStudents(
+    @CurrentUser() user: UserPayload,
+    @Res() res: Response,
+  ) {
+    const csv = await this.adminService.exportStudents(user);
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename="students.csv"');
+    res.send(csv);
   }
 
   @Get('menu-categories')
