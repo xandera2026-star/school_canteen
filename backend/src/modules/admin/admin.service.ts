@@ -72,6 +72,13 @@ const csvEscape = (value: unknown): string => {
   if (value === undefined || value === null) {
     return '';
   }
+  if (
+    typeof value === 'object' ||
+    typeof value === 'function' ||
+    typeof value === 'symbol'
+  ) {
+    return '';
+  }
   const normalized = String(value);
   if (/[",\n]/.test(normalized)) {
     return `"${normalized.replace(/"/g, '""')}"`;
