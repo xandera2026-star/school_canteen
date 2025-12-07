@@ -28,6 +28,8 @@ export declare class AdminService {
             parents_created: number;
         };
     }>;
+    getStudentImportTemplate(): string;
+    exportStudents(user: UserPayload): Promise<string>;
     listCategories(user: UserPayload): Promise<{
         data: {
             category_id: string;

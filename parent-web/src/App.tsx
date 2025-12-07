@@ -75,6 +75,14 @@ function App() {
   }, [tokens]);
 
   useEffect(() => {
+    if (tokens && !tokens.school_id) {
+      setTokens(null);
+      localStorage.removeItem('xandera.parent.tokens');
+      setError('Session expired. Please sign in again.');
+    }
+  }, [tokens]);
+
+  useEffect(() => {
     if (!tokens || !selectedStudentId) return;
     void fetchMenu();
   }, [tokens, selectedStudentId, serviceDate]);
@@ -189,9 +197,17 @@ function App() {
   };
 
   const fetchMenu = async () => {
+    const activeSchoolId = tokens?.school_id;
+    if (!activeSchoolId) {
+      setError('Missing school configuration. Contact your school admin.');
+      return;
+    }
     try {
       setLoadingMenu(true);
-      const params = new URLSearchParams({ service_date: serviceDate });
+      const params = new URLSearchParams({
+        service_date: serviceDate,
+        school_id: activeSchoolId,
+      });
       const response = await authorizedFetch<MenuResponse>(
         `/parent/menu?${params.toString()}`,
       );

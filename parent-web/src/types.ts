@@ -3,6 +3,7 @@ export interface AuthResponse {
   refresh_token: string;
   expires_in: number;
   roles: string[];
+  school_id?: string;
 }
 
 export interface Student {

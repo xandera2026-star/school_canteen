@@ -6,6 +6,7 @@ class AuthResponseDto {
     refresh_token;
     expires_in;
     roles;
+    school_id;
 }
 exports.AuthResponseDto = AuthResponseDto;
 //# sourceMappingURL=auth-response.dto.js.map

@@ -4,6 +4,7 @@ import { MenuItemInputDto } from './dto/menu-item-input.dto';
 import { ThemeSettingsDto } from './dto/theme-settings.dto';
 import { CutoffSettingsDto } from './dto/cutoff-settings.dto';
 import type { UserPayload } from '../auth/interfaces/user-payload.interface';
+import type { Response } from 'express';
 export declare class AdminController {
     private readonly adminService;
     constructor(adminService: AdminService);
@@ -16,6 +17,8 @@ export declare class AdminController {
             parents_created: number;
         };
     }>;
+    downloadTemplate(res: Response): void;
+    exportStudents(user: UserPayload, res: Response): Promise<void>;
     listCategories(user: UserPayload): Promise<{
         data: {
             category_id: string;

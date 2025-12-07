@@ -3,4 +3,5 @@ export class AuthResponseDto {
   refresh_token: string;
   expires_in: number;
   roles: string[];
+  school_id: string;
 }

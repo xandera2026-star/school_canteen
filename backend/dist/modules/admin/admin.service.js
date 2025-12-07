@@ -18,9 +18,48 @@ const typeorm_1 = require("@nestjs/typeorm");
 const typeorm_2 = require("typeorm");
 const sync_1 = require("csv-parse/sync");
 const crypto_1 = require("crypto");
+const fs_1 = require("fs");
+const path_1 = require("path");
 const entities_1 = require("../../database/entities");
 const enums_1 = require("../../database/enums");
 const payment_request_dto_1 = require("../parent/dto/payment-request.dto");
+const STUDENT_TEMPLATE_FALLBACK = `student_name,roll_number,class,section,parent_name,parent_mobile,parent_email,allergy_info,is_active
+Aarav Krishnan,SVSS-101,IX,A,Meera Krishnan,919876543210,meera.krishnan@example.com,"nuts; lactose",true
+Diya Raman,SVSS-102,IX,A,Raman Subramani,919812345678,raman.subramani@example.com,gluten,true
+Kavin Raj,SVSS-201,X,B,Saranya Raj,919845612378,saranya.raj@example.com,none,true
+Mithra S,SVSS-305,VIII,C,Srinivasan Kumar,919834567890,srinivasan.kumar@example.com,"spicy; nuts",false`;
+const TEMPLATE_PATH_CANDIDATES = [
+    (0, path_1.join)(process.cwd(), '../docs/student_import_template.csv'),
+    (0, path_1.join)(process.cwd(), 'docs/student_import_template.csv'),
+];
+const STUDENT_TEMPLATE_CSV = (() => {
+    for (const path of TEMPLATE_PATH_CANDIDATES) {
+        try {
+            return (0, fs_1.readFileSync)(path, 'utf-8');
+        }
+        catch {
+        }
+    }
+    return STUDENT_TEMPLATE_FALLBACK;
+})();
+const CSV_HEADER = 'student_name,roll_number,class,section,parent_name,parent_mobile,parent_email,allergy_info,is_active';
+const PRINTABLE_SCALAR_TYPES = new Set(['string', 'number', 'boolean', 'bigint']);
+const isPrintableScalar = (value) => {
+    return PRINTABLE_SCALAR_TYPES.has(typeof value);
+};
+const csvEscape = (value) => {
+    if (value === undefined || value === null) {
+        return '';
+    }
+    if (!isPrintableScalar(value)) {
+        return '';
+    }
+    const normalized = String(value);
+    if (/[",\n]/.test(normalized)) {
+        return `"${normalized.replace(/"/g, '""')}"`;
+    }
+    return normalized;
+};
 let AdminService = class AdminService {
     dataSource;
     categoryRepository;
@@ -146,6 +185,47 @@ let AdminService = class AdminService {
             }
         });
         return { data: stats };
+    }
+    getStudentImportTemplate() {
+        return STUDENT_TEMPLATE_CSV;
+    }
+    async exportStudents(user) {
+        if (!user.schoolId) {
+            throw new common_1.BadRequestException('school context missing');
+        }
+        const [students, parentLinks] = await Promise.all([
+            this.studentRepository.find({
+                where: { schoolId: user.schoolId },
+                order: { name: 'ASC' },
+            }),
+            this.parentChildRepository.find({
+                where: { schoolId: user.schoolId },
+                relations: { parent: true },
+            }),
+        ]);
+        const parentByStudent = new Map();
+        for (const link of parentLinks) {
+            if (!parentByStudent.has(link.studentId) && link.parent) {
+                parentByStudent.set(link.studentId, link.parent);
+            }
+        }
+        const rows = students.map((student) => {
+            const parent = parentByStudent.get(student.id);
+            const allergyInfo = (student.allergyFlags ?? []).join('; ');
+            const csvRow = [
+                student.name ?? '',
+                student.rollNumber ?? '',
+                student.className ?? '',
+                student.section ?? '',
+                parent?.name ?? '',
+                parent?.mobile ?? '',
+                parent?.email ?? '',
+                allergyInfo,
+                student.isActive ? 'true' : 'false',
+            ];
+            return csvRow.map(csvEscape).join(',');
+        });
+        return [CSV_HEADER, ...rows].join('\n');
     }
     async listCategories(user) {
         const categories = await this.categoryRepository.find({

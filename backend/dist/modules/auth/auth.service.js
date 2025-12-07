@@ -143,6 +143,7 @@ let AuthService = AuthService_1 = class AuthService {
             refresh_token: refreshToken,
             expires_in: accessExpiresIn,
             roles: payload.roles,
+            school_id: payload.schoolId ?? '',
         };
     }
     parseExpiry(expiresIn) {

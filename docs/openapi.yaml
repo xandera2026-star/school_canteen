@@ -514,6 +514,9 @@ components:
               type: array
               items:
                 type: string
+            school_id:
+              type: string
+              format: uuid
     Student:
       type: object
       properties:

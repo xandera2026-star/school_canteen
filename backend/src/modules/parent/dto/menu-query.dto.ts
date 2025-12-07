@@ -1,7 +1,6 @@
-import { IsDateString, IsOptional, IsUUID } from 'class-validator';
+import { IsDateString, IsUUID } from 'class-validator';
 
 export class MenuQueryDto {
-  @IsOptional()
   @IsUUID()
   school_id: string;
 

@@ -30,6 +30,18 @@ let AdminController = class AdminController {
     importStudents(file, user) {
         return this.adminService.importStudents(file, user);
     }
+    downloadTemplate(res) {
+        const csv = this.adminService.getStudentImportTemplate();
+        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Disposition', 'attachment; filename="student_import_template.csv"');
+        res.send(csv);
+    }
+    async exportStudents(user, res) {
+        const csv = await this.adminService.exportStudents(user);
+        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Disposition', 'attachment; filename="students.csv"');
+        res.send(csv);
+    }
     listCategories(user) {
         return this.adminService.listCategories(user);
     }
@@ -62,6 +74,21 @@ __decorate([
     __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", void 0)
 ], AdminController.prototype, "importStudents", null);
+__decorate([
+    (0, common_1.Get)('students/template'),
+    __param(0, (0, common_1.Res)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], AdminController.prototype, "downloadTemplate", null);
+__decorate([
+    (0, common_1.Get)('students/export'),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Res)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", Promise)
+], AdminController.prototype, "exportStudents", null);
 __decorate([
     (0, common_1.Get)('menu-categories'),
     __param(0, (0, current_user_decorator_1.CurrentUser)()),
