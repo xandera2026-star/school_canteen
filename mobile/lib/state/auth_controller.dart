@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-
 import '../models/auth_tokens.dart';
 import '../services/api_client.dart';
 import '../services/auth_repository.dart';
@@ -21,7 +19,6 @@ class AuthController extends ChangeNotifier {
   String? get lastSchoolId => _lastSchoolId;
 
   Future<void> bootstrap() async {
-    final prefs = await SharedPreferences.getInstance();
     _lastMobile = await _repository.lastUsedMobile();
     _lastSchoolId = await _repository.lastUsedSchoolId();
     _tokens = await ApiClient.instance.loadPersistedTokens();
