@@ -1,4 +1,5 @@
-import { ChangeEvent, useCallback, useEffect, useMemo, useState } from 'react';
+import type { ChangeEvent } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import './index.css';
 import { apiRequest } from './lib/api';
 import type {
