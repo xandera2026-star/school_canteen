@@ -66,4 +66,5 @@
 | RENDER_API_KEY | Used in CI deploy steps |
 | RENDER_BACKEND_SERVICE_ID | Service identifier for backend |
 | RENDER_ADMIN_SERVICE_ID | Service identifier for admin static site |
+| RENDER_PARENT_SERVICE_ID | Service identifier for parent web portal |
 | RENDER_POSTGRES_DATABASE_URL | Provided automatically to services |
