@@ -3,9 +3,11 @@ import {
   ArrayMinSize,
   IsArray,
   IsDateString,
+  IsInt,
   IsOptional,
   IsString,
   IsUUID,
+  Min,
   ValidateNested,
 } from 'class-validator';
 
@@ -14,6 +16,8 @@ class OrderItemDto {
   menu_item_id: string;
 
   @Type(() => Number)
+  @IsInt()
+  @Min(1)
   quantity: number;
 
   @IsOptional()
