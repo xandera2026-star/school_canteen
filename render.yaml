@@ -46,7 +46,9 @@ services:
       - key: VITE_DEMO_SCHOOL_CODE
         value: SVS1
       - key: VITE_DEFAULT_SCHOOL_NAME
-        value: Saraswathi Vidyalaya
+        value: Saraswathi Vidyalaya Secondary School
+      - key: VITE_PORTAL_TAGLINE
+        value: ''
 
 databases:
   - name: xandera-postgres

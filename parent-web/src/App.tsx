@@ -19,7 +19,10 @@ const API_BASE_URLS = [API_BASE_URL, FALLBACK_API_BASE_URL].filter(
   (value, index, array) => value && array.indexOf(value) === index,
 );
 const DEMO_SCHOOL_CODE = import.meta.env.VITE_DEMO_SCHOOL_CODE ?? '';
-const SCHOOL_NAME = import.meta.env.VITE_DEFAULT_SCHOOL_NAME ?? '';
+const PORTAL_TAGLINE = import.meta.env.VITE_PORTAL_TAGLINE?.trim() ?? '';
+const SCHOOL_NAME =
+  import.meta.env.VITE_DEFAULT_SCHOOL_NAME?.trim() ||
+  'Saraswathi Vidyalaya Secondary School';
 
 interface CartLine {
   menu_item_id: string;
@@ -55,10 +58,8 @@ function App() {
   const [loadingStudents, setLoadingStudents] = useState(false);
   const [loadingOrders, setLoadingOrders] = useState(false);
 
-  const trimmedSchoolName = SCHOOL_NAME.trim();
-  const loginTitle = trimmedSchoolName
-    ? `${trimmedSchoolName} - Sign-In`
-    : 'Parents Sign-In';
+  const trimmedSchoolName = SCHOOL_NAME;
+  const loginTitle = trimmedSchoolName || 'Parents Sign-In';
 
   const identifier = useMemo(() => {
     if (schoolCode.trim()) {
@@ -339,8 +340,8 @@ function App() {
     <div className="page-shell">
       <header className="page-header">
         <div>
-          <p className="eyebrow">XAndera Parent Portal</p>
-          <h1>{SCHOOL_NAME || 'Your School'}</h1>
+          {PORTAL_TAGLINE && <p className="eyebrow">{PORTAL_TAGLINE}</p>}
+          <h1>{SCHOOL_NAME}</h1>
         </div>
         <button onClick={handleLogout}>Logout</button>
       </header>

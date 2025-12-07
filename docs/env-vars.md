@@ -40,6 +40,8 @@
 | VITE_API_BASE_URL | Backend API base path |
 | VITE_FALLBACK_API_BASE_URL | Backup API base path if the primary host is unreachable |
 | VITE_DEMO_SCHOOL_CODE | Optional short code hint for demo logins |
+| VITE_DEFAULT_SCHOOL_NAME | Friendly school name shown in the UI |
+| VITE_PORTAL_TAGLINE | Optional eyebrow text displayed above the heading |
 
 ## Mobile (Flutter)
 | Variable | Description |
