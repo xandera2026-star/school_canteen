@@ -32,7 +32,7 @@ export async function apiRequest<T>(
     try {
       const errorData = await response.json();
       message = errorData?.message ?? message;
-    } catch (err) {
+    } catch {
       // swallow JSON parse errors
     }
     throw new Error(message || 'Request failed');

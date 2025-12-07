@@ -64,7 +64,7 @@ function App() {
     if (stored) {
       try {
         setAnnouncements(JSON.parse(stored));
-      } catch (err) {
+      } catch {
         setAnnouncements(defaultAnnouncements);
       }
     } else {
