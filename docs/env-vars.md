@@ -33,6 +33,12 @@
 | VITE_SENTRY_DSN | Frontend error monitoring |
 | VITE_DEMO_SCHOOL_CODE | Optional short code to prefill login |
 
+## Parent Web (React + Vite)
+| Variable | Description |
+| --- | --- |
+| VITE_API_BASE_URL | Backend API base path |
+| VITE_DEMO_SCHOOL_CODE | Optional short code hint for demo logins |
+
 ## Mobile (Flutter)
 | Variable | Description |
 | --- | --- |
